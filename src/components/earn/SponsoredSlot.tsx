@@ -10,6 +10,7 @@ import { Chip, VaultCard } from "@/components/vault/VaultCard";
 import { useAuth, useProfile } from "@/hooks/use-auth";
 import { errorText, refreshEarnings, useAppSettings, useEarnStatus, useNow } from "@/hooks/use-earn";
 import { supabase } from "@/integrations/supabase/client";
+import { ADS_PER_NETWORK, asNetwork, networkLabel, type AdNetworkId } from "@/lib/ad-networks";
 import {
   AD_LIMIT,
   AD_SECONDS,
@@ -34,6 +35,7 @@ export function SponsoredSlot() {
 
   const [phase, setPhase] = useState<Phase>("idle");
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const [network, setNetwork] = useState<AdNetworkId | null>(null);
   const [remainingMs, setRemainingMs] = useState(AD_SECONDS * 1000);
   const [paused, setPaused] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -90,14 +92,16 @@ export function SponsoredSlot() {
   const start = async () => {
     setError(null);
     setPhase("starting");
-    const { data, error: err } = await supabase.rpc("start_ad_view");
-    if (err || !data) {
+    const { data, error: err } = await supabase.rpc("start_ad_view_v2");
+    const started = (data ?? null) as { session_id?: string; network?: string } | null;
+    if (err || !started?.session_id) {
       setError(errorText(err));
       setPhase("idle");
       refreshEarnings(queryClient);
       return;
     }
-    setSessionId(data);
+    setNetwork(asNetwork(started.network));
+    setSessionId(started.session_id);
     setPhase("watching");
   };
 
@@ -118,6 +122,9 @@ export function SponsoredSlot() {
 
   const progress = 1 - remainingMs / (AD_SECONDS * 1000);
   const active = phase === "watching" || phase === "claiming";
+  // While an ad runs, show the network the server picked; otherwise the one up next.
+  const slotNetwork: AdNetworkId = (active && network) || status.data?.next_network || "aads";
+  const servedHere = status.data?.network_counts[slotNetwork] ?? 0;
 
   return (
     <VaultCard accent="cyan" className="animate-rise p-4">
@@ -135,7 +142,7 @@ export function SponsoredSlot() {
         ) : null}
       </div>
 
-      <SponsorAd className="mt-3">
+      <SponsorAd className="mt-3" network={slotNetwork}>
         {phase === "done" ? (
           <div className="animate-rise absolute inset-0 grid place-items-center bg-background/85 backdrop-blur-sm">
             <div className="text-center">
@@ -158,6 +165,11 @@ export function SponsoredSlot() {
       {!active && phase !== "done" ? (
         <p className="mt-2.5 text-center text-xs text-muted-foreground">
           Watch {AD_SECONDS}s · earn +{formatCoins(COINS_PER_AD)} Coin
+          {user && !settings?.testing_mode ? (
+            <>
+              {" "}· {networkLabel(slotNetwork, settings)} {Math.min(servedHere, ADS_PER_NETWORK)}/{ADS_PER_NETWORK}
+            </>
+          ) : null}
         </p>
       ) : null}
 

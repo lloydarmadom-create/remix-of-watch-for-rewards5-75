@@ -1,10 +1,20 @@
-import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from "react";
 import { Sparkles } from "lucide-react";
 
-import { useAppSettings } from "@/hooks/use-earn";
+import { useAppSettings, type AppSettings } from "@/hooks/use-earn";
+import {
+  bannerDocument,
+  isAdUnitId,
+  networkCode,
+  networkLabel,
+  networkReady,
+  type AdNetworkId,
+} from "@/lib/ad-networks";
 import { cn } from "@/lib/utils";
 
-// Only one A-ADS frame may exist on screen. Every ad box asks for the single lease;
+export { isAdUnitId };
+
+// Only one ad frame may exist on screen. Every ad box asks for the single lease;
 // whoever holds it renders the real frame, the rest show the placeholder.
 const lease = {
   holder: null as symbol | null,
@@ -37,59 +47,84 @@ function useAdLease(enabled: boolean) {
 export const AD_WIDTH = 300;
 export const AD_HEIGHT = 250;
 
-export const isAdUnitId = (unit: string) => /^\d{1,12}$/.test(unit);
-
 export function aadsSrc(unit: string) {
-  return `https://ad.a-ads.com/${unit}?size=${AD_WIDTH}x${AD_HEIGHT}`;
+  return `https://ad.a-ads.com/${unit.trim()}?size=${AD_WIDTH}x${AD_HEIGHT}`;
 }
 
-/** Whether the real ad network unit should show (unit set and testing mode off). */
-export function useLiveAdUnit() {
-  const { data } = useAppSettings();
-  const unit = data?.aads_unit_id ?? "";
-  const live = !!data && !data.testing_mode && isAdUnitId(unit);
-  return { unit, live, testing: !!data?.testing_mode, loaded: !!data };
+/**
+ * What a slot should show for a network: the network itself when it's ready,
+ * otherwise A-ADS as the fallback, otherwise the test placeholder.
+ */
+export function resolveAd(settings: AppSettings | null | undefined, network: AdNetworkId) {
+  if (!settings || settings.testing_mode) return null;
+  if (networkReady(network, settings)) return network;
+  if (networkReady("aads", settings)) return "aads" as const;
+  return null;
 }
 
-/** The single isolated 300x250 A-ADS slot, or a clean test placeholder. */
+/** The single isolated 300x250 ad slot for one network, or a clean test placeholder. */
 export function SponsorAd({
   className,
   children,
+  network = "aads",
   preview,
 }: {
   className?: string;
   children?: ReactNode;
-  /** Admin preview: show this unit instead of the saved one. */
-  preview?: { unit: string; testing: boolean };
+  /** Which network should serve this slot (from the rotation). */
+  network?: AdNetworkId;
+  /** Admin preview: render these unsaved settings instead of the saved ones. */
+  preview?: AppSettings;
 }) {
-  const saved = useLiveAdUnit();
-  const unit = preview ? preview.unit : saved.unit;
-  const live = preview ? !preview.testing && isAdUnitId(preview.unit) : saved.live;
-  const holdsLease = useAdLease(live);
+  const { data: saved } = useAppSettings();
+  const settings = preview ?? saved;
+  const shown = resolveAd(settings, network);
+  const holdsLease = useAdLease(shown !== null);
+
+  const srcDoc = useMemo(() => {
+    if (!settings || !shown || shown === "aads") return null;
+    return bannerDocument(networkCode(shown, settings), AD_WIDTH, AD_HEIGHT);
+  }, [settings, shown]);
 
   return (
     <div
       className={cn("vault-well relative mx-auto grid max-w-full place-items-center overflow-hidden", className)}
       style={{ width: AD_WIDTH, height: AD_HEIGHT }}
     >
-      {live && holdsLease ? (
-        <iframe
-          key={unit}
-          data-aa={unit}
-          src={aadsSrc(unit)}
-          title="Sponsored"
-          width={AD_WIDTH}
-          height={AD_HEIGHT}
-          scrolling="no"
-          className="block border-0 bg-transparent"
-          style={{ width: AD_WIDTH, height: AD_HEIGHT, overflow: "hidden" }}
-        />
+      {shown && holdsLease && settings ? (
+        shown === "aads" ? (
+          <iframe
+            key={`aads-${settings.aads_unit_id}`}
+            data-aa={settings.aads_unit_id.trim()}
+            src={aadsSrc(settings.aads_unit_id)}
+            title="Sponsored"
+            width={AD_WIDTH}
+            height={AD_HEIGHT}
+            scrolling="no"
+            className="block border-0 bg-transparent"
+            style={{ width: AD_WIDTH, height: AD_HEIGHT, overflow: "hidden" }}
+          />
+        ) : (
+          <iframe
+            key={`${shown}-${srcDoc?.length ?? 0}`}
+            srcDoc={srcDoc ?? ""}
+            title={`Sponsored · ${networkLabel(shown, settings)}`}
+            width={AD_WIDTH}
+            height={AD_HEIGHT}
+            scrolling="no"
+            // Scripts run, but never with the app's origin, so they can't read the player's session.
+            sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-forms"
+            referrerPolicy="no-referrer-when-downgrade"
+            className="block border-0 bg-transparent"
+            style={{ width: AD_WIDTH, height: AD_HEIGHT, overflow: "hidden" }}
+          />
+        )
       ) : (
         <div className="px-6 text-center">
           <Sparkles className="mx-auto size-7 text-cyan" />
           <p className="mt-2 font-display text-sm font-semibold">Test ad</p>
           <p className="text-xs text-muted-foreground">
-            {live ? "The sponsor is showing in another slot." : "Sponsor content appears here."}
+            {shown ? "The sponsor is showing in another slot." : "Sponsor content appears here."}
           </p>
           <p className="mt-2 font-mono text-[0.65rem] text-muted-foreground">300 × 250</p>
         </div>

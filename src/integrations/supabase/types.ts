@@ -19,6 +19,7 @@ export type Database = {
           coins_awarded: number
           completed_at: string | null
           id: string
+          network: string
           started_at: string
           user_id: string
         }
@@ -26,6 +27,7 @@ export type Database = {
           coins_awarded?: number
           completed_at?: string | null
           id?: string
+          network?: string
           started_at?: string
           user_id: string
         }
@@ -33,6 +35,7 @@ export type Database = {
           coins_awarded?: number
           completed_at?: string | null
           id?: string
+          network?: string
           started_at?: string
           user_id?: string
         }
@@ -48,30 +51,72 @@ export type Database = {
       }
       app_settings: {
         Row: {
+          aads_enabled: boolean
           aads_unit_id: string
+          adsterra_code: string
+          adsterra_enabled: boolean
+          auto_pay_lightning: boolean
+          bitmedia_code: string
+          bitmedia_enabled: boolean
+          coinzilla_code: string
+          coinzilla_enabled: boolean
+          custom_ad_code: string
+          custom_ad_enabled: boolean
+          custom_ad_name: string
           id: number
+          lightning_provider: string
           maintenance_message: string
           maintenance_mode: boolean
+          monetag_code: string
+          monetag_enabled: boolean
           robux_stock: number
           sats_stock: number
           testing_mode: boolean
           updated_at: string
         }
         Insert: {
+          aads_enabled?: boolean
           aads_unit_id?: string
+          adsterra_code?: string
+          adsterra_enabled?: boolean
+          auto_pay_lightning?: boolean
+          bitmedia_code?: string
+          bitmedia_enabled?: boolean
+          coinzilla_code?: string
+          coinzilla_enabled?: boolean
+          custom_ad_code?: string
+          custom_ad_enabled?: boolean
+          custom_ad_name?: string
           id?: number
+          lightning_provider?: string
           maintenance_message?: string
           maintenance_mode?: boolean
+          monetag_code?: string
+          monetag_enabled?: boolean
           robux_stock?: number
           sats_stock?: number
           testing_mode?: boolean
           updated_at?: string
         }
         Update: {
+          aads_enabled?: boolean
           aads_unit_id?: string
+          adsterra_code?: string
+          adsterra_enabled?: boolean
+          auto_pay_lightning?: boolean
+          bitmedia_code?: string
+          bitmedia_enabled?: boolean
+          coinzilla_code?: string
+          coinzilla_enabled?: boolean
+          custom_ad_code?: string
+          custom_ad_enabled?: boolean
+          custom_ad_name?: string
           id?: number
+          lightning_provider?: string
           maintenance_message?: string
           maintenance_mode?: boolean
+          monetag_code?: string
+          monetag_enabled?: boolean
           robux_stock?: number
           sats_stock?: number
           testing_mode?: boolean
@@ -257,6 +302,7 @@ export type Database = {
       payout_requests: {
         Row: {
           admin_note: string
+          auto_pay_status: string
           category: string
           coins_cost: number
           created_at: string
@@ -265,6 +311,7 @@ export type Database = {
           gamepass_name: string | null
           gamepass_price: number | null
           id: string
+          payment_ref: string | null
           payout_amount: number
           resolved_at: string | null
           reward: string
@@ -276,6 +323,7 @@ export type Database = {
         }
         Insert: {
           admin_note?: string
+          auto_pay_status?: string
           category: string
           coins_cost: number
           created_at?: string
@@ -284,6 +332,7 @@ export type Database = {
           gamepass_name?: string | null
           gamepass_price?: number | null
           id?: string
+          payment_ref?: string | null
           payout_amount: number
           resolved_at?: string | null
           reward: string
@@ -295,6 +344,7 @@ export type Database = {
         }
         Update: {
           admin_note?: string
+          auto_pay_status?: string
           category?: string
           coins_cost?: number
           created_at?: string
@@ -303,6 +353,7 @@ export type Database = {
           gamepass_name?: string | null
           gamepass_price?: number | null
           id?: string
+          payment_ref?: string | null
           payout_amount?: number
           resolved_at?: string | null
           reward?: string
@@ -322,9 +373,42 @@ export type Database = {
           },
         ]
       }
+      payout_reviews: {
+        Row: {
+          created_at: string
+          flags: Json
+          outcome: string
+          payout_id: string
+          request_ip: string | null
+        }
+        Insert: {
+          created_at?: string
+          flags?: Json
+          outcome?: string
+          payout_id: string
+          request_ip?: string | null
+        }
+        Update: {
+          created_at?: string
+          flags?: Json
+          outcome?: string
+          payout_id?: string
+          request_ip?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payout_reviews_payout_id_fkey"
+            columns: ["payout_id"]
+            isOneToOne: true
+            referencedRelation: "payout_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           ads_completed: number
+          ban_reason: string
           coin_balance: number
           created_at: string
           creator_handle: string | null
@@ -350,6 +434,7 @@ export type Database = {
         }
         Insert: {
           ads_completed?: number
+          ban_reason?: string
           coin_balance?: number
           created_at?: string
           creator_handle?: string | null
@@ -375,6 +460,7 @@ export type Database = {
         }
         Update: {
           ads_completed?: number
+          ban_reason?: string
           coin_balance?: number
           created_at?: string
           creator_handle?: string | null
@@ -612,14 +698,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_adjust_coins: {
+        Args: { p_amount: number; p_note?: string; p_user_id: string }
+        Returns: number
+      }
       admin_adjust_stock: {
         Args: { p_robux_delta: number; p_sats_delta: number }
         Returns: undefined
       }
+      admin_get_stock: { Args: never; Returns: Json }
       admin_list_profiles: {
         Args: never
         Returns: {
           ads_completed: number
+          ban_reason: string
           coin_balance: number
           created_at: string
           creator_handle: string | null
@@ -662,10 +754,15 @@ export type Database = {
         Args: { p_decision: string; p_note?: string; p_video_id: string }
         Returns: undefined
       }
+      admin_set_ban: {
+        Args: { p_banned: boolean; p_reason?: string; p_user_id: string }
+        Returns: undefined
+      }
       admin_set_banned: {
         Args: { p_banned: boolean; p_user_id: string }
         Returns: undefined
       }
+      begin_auto_pay: { Args: { p_payout_id: string }; Returns: boolean }
       claim_streak: { Args: never; Returns: number }
       complete_ad_view: { Args: { p_session_id: string }; Returns: number }
       complete_video_view: {
@@ -673,6 +770,15 @@ export type Database = {
         Returns: Json
       }
       ensure_profile: { Args: never; Returns: undefined }
+      finish_auto_pay: {
+        Args: {
+          p_flags: Json
+          p_paid: boolean
+          p_payout_id: string
+          p_ref: string
+        }
+        Returns: undefined
+      }
       get_earn_status: { Args: never; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
       lock_roblox_identity: {
@@ -697,7 +803,12 @@ export type Database = {
         }
         Returns: string
       }
+      screen_payout: {
+        Args: { p_ip: string; p_payout_id: string }
+        Returns: Json
+      }
       start_ad_view: { Args: never; Returns: string }
+      start_ad_view_v2: { Args: never; Returns: Json }
       start_video_unlock: { Args: { p_video_id: string }; Returns: string }
       submit_creator_video: {
         Args: {
@@ -719,6 +830,13 @@ export type Database = {
           p_video_url: string
         }
         Returns: string
+      }
+      unlocked_videos: {
+        Args: { p_ip: string; p_user: string }
+        Returns: {
+          unlocked_until: string
+          video_id: string
+        }[]
       }
       watched_video_ids: {
         Args: { p_ip: string; p_user: string }
