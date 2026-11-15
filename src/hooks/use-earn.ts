@@ -6,7 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 /** Current time, refreshed on an interval, for live countdowns. */
 export function useNow(intervalMs = 1000) {
-  const [now, setNow] = useState(() => Date.now());
+  // 0 until mounted, so server and browser render the same first frame.
+  const [now, setNow] = useState(0);
   useEffect(() => {
     setNow(Date.now());
     const id = window.setInterval(() => setNow(Date.now()), intervalMs);
