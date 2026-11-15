@@ -48,6 +48,9 @@ export type PlayerProfile = {
   level: number;
   is_banned: boolean;
   streak_count: number;
+  lifetime_earned: number;
+  ads_completed: number;
+  last_check_in_at: string | null;
   created_at: string;
 };
 
@@ -60,7 +63,9 @@ export function useProfile() {
     queryFn: async (): Promise<PlayerProfile | null> => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("email, referral_code, referred_by, coin_balance, level, is_banned, streak_count, created_at")
+        .select(
+          "email, referral_code, referred_by, coin_balance, level, is_banned, streak_count, lifetime_earned, ads_completed, last_check_in_at, created_at",
+        )
         .eq("id", user!.id)
         .maybeSingle();
       if (error) throw error;
