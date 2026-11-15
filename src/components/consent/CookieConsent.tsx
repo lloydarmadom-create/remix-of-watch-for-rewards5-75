@@ -141,7 +141,7 @@ export function CookieConsent() {
               </li>
               <ConsentRow
                 id="consent-analytics"
-                title="Analytics, provided by Lovable"
+                title="Analytics, provided by our privacy-friendly site analytics"
                 body="Measures clicks so we can improve the app."
                 checked={!gpc && draft.analytics}
                 disabled={gpc}
