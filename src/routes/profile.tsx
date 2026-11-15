@@ -157,7 +157,7 @@ function AdminConsoleButton() {
   const { data: isAdmin } = useIsAdmin();
   if (!isAdmin) return null;
   return (
-    <Button asChild variant="gold" size="tactile" className="animate-rise w-full shadow-glow-gold">
+    <Button asChild variant="gold" size="tactile" className="animate-rise w-full">
       <Link to="/admin">
         <ShieldHalf /> Admin Console
       </Link>
