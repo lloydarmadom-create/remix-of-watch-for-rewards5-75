@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { Eye, EyeOff, Gift, Loader2, MailCheck } from "lucide-react";
+import { Eye, EyeOff, Gift, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Chip, VaultCard } from "@/components/vault/VaultCard";
@@ -14,18 +14,16 @@ type Mode = "signup" | "login";
 export const fieldClass =
   "vault-well h-11 w-full border-0 px-3.5 text-sm text-foreground placeholder:text-muted-foreground/70 outline-none focus-visible:ring-2 focus-visible:ring-emerald/60";
 
-function friendlyError(message: string) {
-  const m = message.toLowerCase();
-  if (m.includes("invalid login")) return "That email and password don't match.";
-  if (m.includes("already registered") || m.includes("already been registered"))
-    return "That email already has an account. Try logging in.";
-  if (m.includes("email not confirmed")) return "Confirm your email first, then log in.";
-  if (m.includes("rate limit") || m.includes("too many")) return "Too many tries. Wait a minute and try again.";
+/** The exact message from the sign-in service, so players see the real reason. */
+function authErrorMessage(err: unknown) {
+  if (err && typeof err === "object" && "message" in err && typeof err.message === "string" && err.message) {
+    return err.message;
+  }
   return "Something went wrong. Please try again.";
 }
 
-export function AuthPanel() {
-  const [mode, setMode] = useState<Mode>("signup");
+export function AuthPanel({ initialMode = "signup" }: { initialMode?: Mode } = {}) {
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -33,7 +31,6 @@ export function AuthPanel() {
   const [errors, setErrors] = useState<Partial<Record<"email" | "password" | "ageConfirmed", string>>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [confirmSent, setConfirmSent] = useState(false);
   const [refCode, setRefCode] = useState<string | null>(null);
 
   useEffect(() => setRefCode(getStoredReferral()), []);
@@ -67,14 +64,18 @@ export function AuthPanel() {
         const { data, error } = await supabase.auth.signUp({
           email: parsed.data.email,
           password: parsed.data.password,
-          options: {
-            emailRedirectTo: window.location.origin,
-            data: refCode ? { ref: refCode } : {},
-          },
+          options: { data: refCode ? { ref: refCode } : {} },
         });
         if (error) throw error;
         clearStoredReferral();
-        if (!data.session) setConfirmSent(true);
+        // Accounts are confirmed instantly; if no session came back, sign straight in.
+        if (!data.session) {
+          const { error: loginError } = await supabase.auth.signInWithPassword({
+            email: parsed.data.email,
+            password: parsed.data.password,
+          });
+          if (loginError) throw loginError;
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email: parsed.data.email,
@@ -83,26 +84,11 @@ export function AuthPanel() {
         if (error) throw error;
       }
     } catch (err) {
-      setFormError(friendlyError(err instanceof Error ? err.message : ""));
+      setFormError(authErrorMessage(err));
     } finally {
       setBusy(false);
     }
   };
-
-  if (confirmSent) {
-    return (
-      <VaultCard accent="emerald" className="animate-rise p-6 text-center">
-        <MailCheck className="mx-auto size-9 text-emerald" />
-        <h2 className="mt-3 text-lg font-bold">Check your inbox</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          We sent a confirmation link to {email}. Open it, then come back to log in.
-        </p>
-        <Button variant="slate" size="tactile-sm" className="mt-5" onClick={() => { setConfirmSent(false); switchMode("login"); }}>
-          Back to log in
-        </Button>
-      </VaultCard>
-    );
-  }
 
   return (
     <VaultCard accent="emerald" className="animate-rise p-5">

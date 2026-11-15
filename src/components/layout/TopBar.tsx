@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 
 import { Wordmark } from "@/components/brand/Logo";
 import { useAuth, useProfile } from "@/hooks/use-auth";
+import { formatCoins } from "@/lib/earning";
 
 export function TopBar() {
   const { user } = useAuth();
@@ -17,10 +18,10 @@ export function TopBar() {
         <Link
           to="/profile"
           className="vault-well flex items-center gap-1.5 px-2.5 py-1.5"
-          aria-label={`Coin balance: ${balance}`}
+          aria-label={`Coin balance: ${formatCoins(balance)}`}
         >
           <span aria-hidden className="size-3.5 rounded-full bg-gold shadow-glow-gold" />
-          <span className="font-mono text-sm font-semibold tabular-nums text-gold">{balance}</span>
+          <span className="font-mono text-sm font-semibold tabular-nums text-gold">{formatCoins(balance)}</span>
           <span className="font-display text-[0.6rem] uppercase tracking-[0.16em] text-muted-foreground">
             coins
           </span>

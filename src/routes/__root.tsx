@@ -19,6 +19,7 @@ import { SiteFooter } from "@/components/layout/SiteFooter";
 import { CookieConsent } from "@/components/consent/CookieConsent";
 import { ContactSupport } from "@/components/support/ContactSupport";
 import { AuthProvider } from "@/hooks/use-auth";
+import { MaintenanceGate } from "@/components/layout/MaintenanceGate";
 
 function NotFoundComponent() {
   return (
@@ -137,17 +138,19 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-      <div className="app-backdrop flex min-h-dvh flex-col">
-        <TopBar />
-        <main className="mx-auto w-full max-w-lg flex-1 px-4 pt-5">
-          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-          <Outlet />
-        </main>
-        <SiteFooter />
-        <BottomNav />
-        <CookieConsent />
-        <ContactSupport />
-      </div>
+      <MaintenanceGate>
+        <div className="app-backdrop flex min-h-dvh flex-col">
+          <TopBar />
+          <main className="mx-auto w-full max-w-lg flex-1 px-4 pt-5">
+            {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+            <Outlet />
+          </main>
+          <SiteFooter />
+          <BottomNav />
+        </div>
+      </MaintenanceGate>
+      <CookieConsent />
+      <ContactSupport />
       </AuthProvider>
     </QueryClientProvider>
   );
