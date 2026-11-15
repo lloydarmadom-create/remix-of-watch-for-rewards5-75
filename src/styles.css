@@ -69,6 +69,7 @@
   --shadow-press-slate: 0 4px 0 0 var(--obsidian), inset 0 1px 0 0 oklch(1 0 0 / 0.08);
   --shadow-glow-emerald: 0 0 24px -4px color-mix(in oklab, var(--emerald) 60%, transparent);
   --shadow-glow-gold: 0 0 24px -6px color-mix(in oklab, var(--gold) 55%, transparent);
+  --shadow-glow-cyan: 0 0 24px -6px color-mix(in oklab, var(--cyan) 55%, transparent);
 
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
