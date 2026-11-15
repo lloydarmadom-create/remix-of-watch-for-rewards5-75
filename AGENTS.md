@@ -35,4 +35,5 @@ use the editor.
 - Cookie consent goes only through `src/lib/consent.ts` (copied unchanged from the consent skill) and the defaults script in `src/lib/consent-defaults.ts`, which must stay the first root head script. Why: Consent Mode must be set before any tag loads.
 - Reusable visuals (vault cards, chips, icon tiles, tactile button variants) live in `src/components/vault` and `components/ui/button.tsx`; styles come from tokens/utilities in `src/styles.css`. Why: no ad hoc colors.
 - Coin balances change only inside SECURITY DEFINER database functions that call `private.credit_coins`, which also writes the `transactions` ledger; `src/lib/earning.ts` mirrors the rules for display and tests. Why: players can't grant themselves coins, and every coin is logged.
+- Remixes copy the public schema but drop triggers on `auth.users`; the signup trigger `on_auth_user_created` → `public.handle_new_user` is re-created idempotently by migration, and `ensure_profile()` stays as the client fallback. Why: fresh remixes must never break sign-up.
 <!-- AGENT-MEMORY:END -->

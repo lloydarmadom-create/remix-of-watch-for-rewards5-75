@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
-import { Clapperboard, Gift, Inbox, Lock, ShieldAlert, Users, Wallet } from "lucide-react";
+import { Gift, Inbox, Lock, ShieldAlert, Users, Wallet } from "lucide-react";
 
+import { AdPreviewCard } from "@/components/admin/AdPreviewCard";
 import { AppSettingsCard } from "@/components/admin/AppSettingsCard";
+import { VideoReviewQueue } from "@/components/admin/VideoReviewQueue";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Chip, IconTile, VaultCard } from "@/components/vault/VaultCard";
@@ -40,7 +42,6 @@ export const Route = createFileRoute("/admin")({
 const LOCKED = [
   { name: "Players", icon: Users },
   { name: "Payout queue", icon: Wallet },
-  { name: "Videos", icon: Clapperboard },
   { name: "Store items", icon: Gift },
 ];
 
@@ -87,6 +88,8 @@ function AdminPage() {
       </VaultCard>
 
       <AppSettingsCard />
+      <AdPreviewCard />
+      <VideoReviewQueue />
 
       <section aria-labelledby="inbox" className="space-y-2.5">
         <div className="flex items-center justify-between px-1 pt-2">
