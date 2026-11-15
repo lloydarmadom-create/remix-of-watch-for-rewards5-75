@@ -16,18 +16,21 @@ export type Database = {
     Tables: {
       ad_sessions: {
         Row: {
+          coins_awarded: number
           completed_at: string | null
           id: string
           started_at: string
           user_id: string
         }
         Insert: {
+          coins_awarded?: number
           completed_at?: string | null
           id?: string
           started_at?: string
           user_id: string
         }
         Update: {
+          coins_awarded?: number
           completed_at?: string | null
           id?: string
           started_at?: string
@@ -86,69 +89,51 @@ export type Database = {
       }
       profiles: {
         Row: {
-          ads_watched_window: number
           coin_balance: number
           created_at: string
           email: string
           id: string
           is_banned: boolean
-          last_robux_payout_at: string | null
-          last_sats_payout_at: string | null
-          last_streak_claim_at: string | null
-          last_video_submit_at: string | null
+          last_streak_on: string | null
           level: number
-          lifetime_ads_watched: number
           referral_code: string
           referred_by: string | null
-          roblox_user_id: string | null
           roblox_username: string | null
           streak_count: number
           tiktok_handle: string | null
-          window_reset_at: string | null
+          updated_at: string
           youtube_handle: string | null
         }
         Insert: {
-          ads_watched_window?: number
           coin_balance?: number
           created_at?: string
-          email: string
+          email?: string
           id: string
           is_banned?: boolean
-          last_robux_payout_at?: string | null
-          last_sats_payout_at?: string | null
-          last_streak_claim_at?: string | null
-          last_video_submit_at?: string | null
+          last_streak_on?: string | null
           level?: number
-          lifetime_ads_watched?: number
           referral_code: string
           referred_by?: string | null
-          roblox_user_id?: string | null
           roblox_username?: string | null
           streak_count?: number
           tiktok_handle?: string | null
-          window_reset_at?: string | null
+          updated_at?: string
           youtube_handle?: string | null
         }
         Update: {
-          ads_watched_window?: number
           coin_balance?: number
           created_at?: string
           email?: string
           id?: string
           is_banned?: boolean
-          last_robux_payout_at?: string | null
-          last_sats_payout_at?: string | null
-          last_streak_claim_at?: string | null
-          last_video_submit_at?: string | null
+          last_streak_on?: string | null
           level?: number
-          lifetime_ads_watched?: number
           referral_code?: string
           referred_by?: string | null
-          roblox_user_id?: string | null
           roblox_username?: string | null
           streak_count?: number
           tiktok_handle?: string | null
-          window_reset_at?: string | null
+          updated_at?: string
           youtube_handle?: string | null
         }
         Relationships: [
@@ -163,16 +148,28 @@ export type Database = {
       }
       vault_settings: {
         Row: {
-          aads_unit_id: string
+          ad_min_seconds: number
+          coins_per_ad: number
+          daily_ad_limit: number
           id: number
+          streak_coins: number
+          updated_at: string
         }
         Insert: {
-          aads_unit_id?: string
+          ad_min_seconds?: number
+          coins_per_ad?: number
+          daily_ad_limit?: number
           id?: number
+          streak_coins?: number
+          updated_at?: string
         }
         Update: {
-          aads_unit_id?: string
+          ad_min_seconds?: number
+          coins_per_ad?: number
+          daily_ad_limit?: number
           id?: number
+          streak_coins?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -189,49 +186,31 @@ export type Database = {
           email: string
           id: string
           is_banned: boolean
-          lifetime_ads_watched: number
-          streak_count: number
-        }[]
-      }
-      admin_set_banned: {
-        Args: { banned: boolean; target: string }
-        Returns: undefined
-      }
-      claim_streak: { Args: never; Returns: Json }
-      complete_ad_view: { Args: { sid: string }; Returns: Json }
-      is_admin: { Args: never; Returns: boolean }
-      lock_active_profile: {
-        Args: never
-        Returns: {
-          ads_watched_window: number
-          coin_balance: number
-          created_at: string
-          email: string
-          id: string
-          is_banned: boolean
-          last_robux_payout_at: string | null
-          last_sats_payout_at: string | null
-          last_streak_claim_at: string | null
-          last_video_submit_at: string | null
+          last_streak_on: string | null
           level: number
-          lifetime_ads_watched: number
           referral_code: string
           referred_by: string | null
-          roblox_user_id: string | null
           roblox_username: string | null
           streak_count: number
           tiktok_handle: string | null
-          window_reset_at: string | null
+          updated_at: string
           youtube_handle: string | null
-        }
+        }[]
         SetofOptions: {
           from: "*"
           to: "profiles"
-          isOneToOne: true
-          isSetofReturn: false
+          isOneToOne: false
+          isSetofReturn: true
         }
       }
-      start_ad_view: { Args: never; Returns: Json }
+      admin_set_banned: {
+        Args: { p_banned: boolean; p_user_id: string }
+        Returns: undefined
+      }
+      claim_streak: { Args: never; Returns: number }
+      complete_ad_view: { Args: { p_session_id: string }; Returns: number }
+      is_admin: { Args: never; Returns: boolean }
+      start_ad_view: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never
