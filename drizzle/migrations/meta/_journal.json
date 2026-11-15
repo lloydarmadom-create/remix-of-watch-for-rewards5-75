@@ -8,6 +8,13 @@
       "when": 1794762870133,
       "tag": "0000_restore_signup_trigger_and_tighten_video_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794766184224,
+      "tag": "0001_rewards_store_payouts",
+      "breakpoints": true
     }
   ]
 }

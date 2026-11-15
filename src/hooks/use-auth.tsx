@@ -54,10 +54,14 @@ export type PlayerProfile = {
   created_at: string;
   creator_platform: string | null;
   creator_handle: string | null;
+  roblox_username: string | null;
+  roblox_user_id: number | null;
+  roblox_display_name: string | null;
+  roblox_avatar_url: string | null;
 };
 
 const PROFILE_COLUMNS =
-  "email, referral_code, referred_by, coin_balance, level, is_banned, streak_count, lifetime_earned, ads_completed, last_check_in_at, created_at, creator_platform, creator_handle";
+  "email, referral_code, referred_by, coin_balance, level, is_banned, streak_count, lifetime_earned, ads_completed, last_check_in_at, created_at, creator_platform, creator_handle, roblox_username, roblox_user_id, roblox_display_name, roblox_avatar_url";
 
 /** The signed-in player's own profile row (RLS limits it to their row). */
 export function useProfile() {

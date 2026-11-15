@@ -254,6 +254,74 @@ export type Database = {
           },
         ]
       }
+      payout_requests: {
+        Row: {
+          admin_note: string
+          category: string
+          coins_cost: number
+          created_at: string
+          destination: string
+          gamepass_id: number | null
+          gamepass_name: string | null
+          gamepass_price: number | null
+          id: string
+          payout_amount: number
+          resolved_at: string | null
+          reward: string
+          roblox_user_id: number | null
+          roblox_username: string | null
+          status: string
+          stock_cost: number
+          user_id: string
+        }
+        Insert: {
+          admin_note?: string
+          category: string
+          coins_cost: number
+          created_at?: string
+          destination: string
+          gamepass_id?: number | null
+          gamepass_name?: string | null
+          gamepass_price?: number | null
+          id?: string
+          payout_amount: number
+          resolved_at?: string | null
+          reward: string
+          roblox_user_id?: number | null
+          roblox_username?: string | null
+          status?: string
+          stock_cost: number
+          user_id: string
+        }
+        Update: {
+          admin_note?: string
+          category?: string
+          coins_cost?: number
+          created_at?: string
+          destination?: string
+          gamepass_id?: number | null
+          gamepass_name?: string | null
+          gamepass_price?: number | null
+          id?: string
+          payout_amount?: number
+          resolved_at?: string | null
+          reward?: string
+          roblox_user_id?: number | null
+          roblox_username?: string | null
+          status?: string
+          stock_cost?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payout_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           ads_completed: number
@@ -270,7 +338,11 @@ export type Database = {
           lifetime_earned: number
           referral_code: string
           referred_by: string | null
+          roblox_avatar_url: string | null
+          roblox_display_name: string | null
+          roblox_user_id: number | null
           roblox_username: string | null
+          roblox_verified_at: string | null
           streak_count: number
           tiktok_handle: string | null
           updated_at: string
@@ -291,7 +363,11 @@ export type Database = {
           lifetime_earned?: number
           referral_code: string
           referred_by?: string | null
+          roblox_avatar_url?: string | null
+          roblox_display_name?: string | null
+          roblox_user_id?: number | null
           roblox_username?: string | null
+          roblox_verified_at?: string | null
           streak_count?: number
           tiktok_handle?: string | null
           updated_at?: string
@@ -312,7 +388,11 @@ export type Database = {
           lifetime_earned?: number
           referral_code?: string
           referred_by?: string | null
+          roblox_avatar_url?: string | null
+          roblox_display_name?: string | null
+          roblox_user_id?: number | null
           roblox_username?: string | null
+          roblox_verified_at?: string | null
           streak_count?: number
           tiktok_handle?: string | null
           updated_at?: string
@@ -322,6 +402,56 @@ export type Database = {
           {
             foreignKeyName: "profiles_referred_by_fkey"
             columns: ["referred_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roblox_change_requests: {
+        Row: {
+          created_at: string
+          id: string
+          new_avatar_url: string | null
+          new_display_name: string | null
+          new_user_id: number
+          new_username: string
+          old_user_id: number | null
+          old_username: string | null
+          resolved_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          new_avatar_url?: string | null
+          new_display_name?: string | null
+          new_user_id: number
+          new_username: string
+          old_user_id?: number | null
+          old_username?: string | null
+          resolved_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          new_avatar_url?: string | null
+          new_display_name?: string | null
+          new_user_id?: number
+          new_username?: string
+          old_user_id?: number | null
+          old_username?: string | null
+          resolved_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roblox_change_requests_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -482,6 +612,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_adjust_stock: {
+        Args: { p_robux_delta: number; p_sats_delta: number }
+        Returns: undefined
+      }
       admin_list_profiles: {
         Args: never
         Returns: {
@@ -499,7 +633,11 @@ export type Database = {
           lifetime_earned: number
           referral_code: string
           referred_by: string | null
+          roblox_avatar_url: string | null
+          roblox_display_name: string | null
+          roblox_user_id: number | null
           roblox_username: string | null
+          roblox_verified_at: string | null
           streak_count: number
           tiktok_handle: string | null
           updated_at: string
@@ -511,6 +649,14 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      admin_resolve_payout: {
+        Args: { p_decision: string; p_id: string; p_note?: string }
+        Returns: undefined
+      }
+      admin_review_roblox_change: {
+        Args: { p_decision: string; p_id: string }
+        Returns: undefined
       }
       admin_review_video: {
         Args: { p_decision: string; p_note?: string; p_video_id: string }
@@ -529,6 +675,28 @@ export type Database = {
       ensure_profile: { Args: never; Returns: undefined }
       get_earn_status: { Args: never; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
+      lock_roblox_identity: {
+        Args: {
+          p_avatar: string
+          p_display: string
+          p_roblox_id: number
+          p_user: string
+          p_username: string
+        }
+        Returns: string
+      }
+      redeem_reward: {
+        Args: {
+          p_destination: string
+          p_gamepass_id?: number
+          p_gamepass_name?: string
+          p_gamepass_price?: number
+          p_reward: string
+          p_roblox_user_id?: number
+          p_user: string
+        }
+        Returns: string
+      }
       start_ad_view: { Args: never; Returns: string }
       start_video_unlock: { Args: { p_video_id: string }; Returns: string }
       submit_creator_video: {
