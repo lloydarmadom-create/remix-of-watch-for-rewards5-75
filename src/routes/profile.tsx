@@ -7,6 +7,7 @@ import {
   LifeBuoy,
   LogOut,
   ShieldCheck,
+  ShieldHalf,
   UserRound,
 } from "lucide-react";
 
@@ -15,11 +16,12 @@ import { InviteCard } from "@/components/earn/InviteCard";
 import { openCookieSettings } from "@/components/consent/CookieConsent";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { openContactSupport } from "@/components/support/ContactSupport";
+import { CreatorHandleCard } from "@/components/videos/CreatorHandleCard";
 import { Button } from "@/components/ui/button";
 import { Chip, IconTile, VaultCard } from "@/components/vault/VaultCard";
 import { useAuth, useProfile } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
-import { useNow } from "@/hooks/use-earn";
+import { useIsAdmin, useNow } from "@/hooks/use-earn";
 import { formatCoins, streakState } from "@/lib/earning";
 
 export const Route = createFileRoute("/profile")({
@@ -47,6 +49,8 @@ function ProfilePage() {
       <PageHeader eyebrow="Profile" title={user ? "Your player card." : "Join the vault."}>
         {user ? undefined : "Create a free account with just your email."}
       </PageHeader>
+
+      {user ? <AdminConsoleButton /> : null}
 
       {!ready ? (
         <VaultCard className="h-64 skeleton-shimmer" />
@@ -142,8 +146,22 @@ function PlayerCard() {
         </Button>
       </VaultCard>
 
+      <CreatorHandleCard />
       <InviteCard />
     </>
+  );
+}
+
+/** Only shown when the database confirms this account is the admin. */
+function AdminConsoleButton() {
+  const { data: isAdmin } = useIsAdmin();
+  if (!isAdmin) return null;
+  return (
+    <Button asChild variant="gold" size="tactile" className="animate-rise w-full">
+      <Link to="/admin">
+        <ShieldHalf /> Admin Console
+      </Link>
+    </Button>
   );
 }
 
