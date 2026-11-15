@@ -1,48 +1,5 @@
 {
   "version": "7",
   "dialect": "postgresql",
-  "entries": [
-    {
-      "idx": 0,
-      "version": "7",
-      "when": 1794755541676,
-      "tag": "0000_base_player_schema",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1794755570520,
-      "tag": "0001_migration",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1794755583396,
-      "tag": "0002_migration",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1794756152528,
-      "tag": "0003_tighten_support_inbox_grants",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1794756636901,
-      "tag": "0004_earning_engine_and_app_settings",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1794756932491,
-      "tag": "0005_tighten_new_table_grants",
-      "breakpoints": true
-    }
-  ]
+  "entries": []
 }
