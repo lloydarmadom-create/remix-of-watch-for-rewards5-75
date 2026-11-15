@@ -1,21 +1,17 @@
-import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import {
   Ban,
-  Check,
   ChevronRight,
   Cookie,
-  Copy,
   LifeBuoy,
   LogOut,
-  Share2,
   ShieldCheck,
   UserRound,
-  Users,
 } from "lucide-react";
 
 import { AuthPanel } from "@/components/auth/AuthPanel";
+import { InviteCard } from "@/components/earn/InviteCard";
 import { openCookieSettings } from "@/components/consent/CookieConsent";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { openContactSupport } from "@/components/support/ContactSupport";
@@ -23,7 +19,8 @@ import { Button } from "@/components/ui/button";
 import { Chip, IconTile, VaultCard } from "@/components/vault/VaultCard";
 import { useAuth, useProfile } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
-import { referralLink } from "@/lib/referral";
+import { useNow } from "@/hooks/use-earn";
+import { formatCoins, streakState } from "@/lib/earning";
 
 export const Route = createFileRoute("/profile")({
   head: () => ({
@@ -91,40 +88,13 @@ function PlayerCard() {
   const { data: profile, isLoading, isError } = useProfile();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const [copied, setCopied] = useState(false);
-  const [link, setLink] = useState("");
-
-  useEffect(() => {
-    if (profile?.referral_code) setLink(referralLink(window.location.origin, profile.referral_code));
-  }, [profile?.referral_code]);
+  const now = useNow();
 
   const signOut = async () => {
     await queryClient.cancelQueries();
     queryClient.clear();
     await supabase.auth.signOut();
     navigate({ to: "/profile", replace: true });
-  };
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(link);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch {
-      /* clipboard blocked */
-    }
-  };
-
-  const share = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: "Watch For Rewards", text: "Earn rewards with me:", url: link });
-      } catch {
-        /* cancelled */
-      }
-    } else {
-      void copy();
-    }
   };
 
   return (
@@ -153,8 +123,15 @@ function PlayerCard() {
         ) : null}
 
         <div className="mt-4 grid grid-cols-2 gap-2.5">
-          <Stat label="Coins" value={isLoading ? "…" : String(profile?.coin_balance ?? 0)} gold />
-          <Stat label="Streak" value={isLoading ? "…" : `${profile?.streak_count ?? 0}d`} />
+          <Stat label="Coins" value={isLoading ? "…" : formatCoins(profile?.coin_balance)} gold />
+          <Stat
+            label="Streak"
+            value={
+              isLoading || !profile || !now
+                ? "…"
+                : `${streakState(profile.streak_count, profile.last_check_in_at, now).current}d`
+            }
+          />
         </div>
         {isError ? (
           <p className="mt-3 text-xs text-destructive">We couldn't load your profile. Please reload the page.</p>
@@ -165,33 +142,7 @@ function PlayerCard() {
         </Button>
       </VaultCard>
 
-      <VaultCard accent="gold" className="animate-rise p-5">
-        <div className="flex items-center gap-3">
-          <IconTile tone="gold">
-            <Users />
-          </IconTile>
-          <div>
-            <p className="font-display font-semibold">Invite friends</p>
-            <p className="text-xs text-muted-foreground">Share your link. They join, you both earn.</p>
-          </div>
-        </div>
-        <div className="vault-well mt-4 flex items-center justify-between gap-2 p-3">
-          <span className="font-display text-[0.65rem] uppercase tracking-[0.16em] text-muted-foreground">
-            Your code
-          </span>
-          <span className="font-mono text-lg font-semibold tracking-[0.18em] text-gold">
-            {profile?.referral_code ?? "········"}
-          </span>
-        </div>
-        <div className="mt-3 grid grid-cols-2 gap-2.5">
-          <Button variant="slate" size="tactile-sm" onClick={copy} disabled={!link}>
-            {copied ? <Check /> : <Copy />} {copied ? "Copied" : "Copy link"}
-          </Button>
-          <Button variant="gold" size="tactile-sm" onClick={share} disabled={!link}>
-            <Share2 /> Share
-          </Button>
-        </div>
-      </VaultCard>
+      <InviteCard />
     </>
   );
 }
