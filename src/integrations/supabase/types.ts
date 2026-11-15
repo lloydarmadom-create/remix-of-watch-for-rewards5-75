@@ -46,6 +46,47 @@ export type Database = {
           },
         ]
       }
+      contact_messages: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          message: string
+          reply_email: string
+          sender_name: string
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          message: string
+          reply_email: string
+          sender_name: string
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          message?: string
+          reply_email?: string
+          sender_name?: string
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           coin_balance: number
@@ -54,6 +95,7 @@ export type Database = {
           id: string
           is_banned: boolean
           last_streak_on: string | null
+          level: number
           referral_code: string
           referred_by: string | null
           roblox_username: string | null
@@ -69,6 +111,7 @@ export type Database = {
           id: string
           is_banned?: boolean
           last_streak_on?: string | null
+          level?: number
           referral_code: string
           referred_by?: string | null
           roblox_username?: string | null
@@ -84,6 +127,7 @@ export type Database = {
           id?: string
           is_banned?: boolean
           last_streak_on?: string | null
+          level?: number
           referral_code?: string
           referred_by?: string | null
           roblox_username?: string | null
@@ -143,6 +187,7 @@ export type Database = {
           id: string
           is_banned: boolean
           last_streak_on: string | null
+          level: number
           referral_code: string
           referred_by: string | null
           roblox_username: string | null
