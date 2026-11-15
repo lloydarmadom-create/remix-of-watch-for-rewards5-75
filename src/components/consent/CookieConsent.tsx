@@ -4,7 +4,7 @@ import { Cookie, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { needsAnswer, onConsentChange, readChoice, saveChoices, type Purpose } from "@/lib/consent";
+import { onConsentChange, readChoice, saveChoices, type Purpose } from "@/lib/consent";
 
 const PURPOSES: Purpose[] = ["analytics", "advertising"];
 const OPEN_EVENT = "open-cookie-settings";
@@ -35,10 +35,8 @@ export function CookieConsent() {
     setGpc(
       (navigator as unknown as { globalPrivacyControl?: boolean }).globalPrivacyControl === true,
     );
-    let cancelled = false;
-    void needsAnswer(PURPOSES).then((needed) => {
-      if (!cancelled && needed) setView((v) => v ?? "banner");
-    });
+    // Shown to every visitor until they answer each purpose (GPC counts as an answer: reject).
+    if (PURPOSES.some((p) => readChoice(p) === null)) setView((v) => v ?? "banner");
     const onOpen = () => {
       loadDraft();
       setView("settings");
@@ -46,7 +44,6 @@ export function CookieConsent() {
     window.addEventListener(OPEN_EVENT, onOpen);
     const off = onConsentChange(loadDraft);
     return () => {
-      cancelled = true;
       window.removeEventListener(OPEN_EVENT, onOpen);
       off();
     };
