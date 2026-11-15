@@ -66,7 +66,17 @@ export function AuthPanel({ initialMode = "signup" }: { initialMode?: Mode } = {
           password: parsed.data.password,
           options: { data: refCode ? { ref: refCode } : {} },
         });
-        if (error) throw error;
+        if (error) {
+          // Already registered? Try logging straight in with the same details; otherwise show the real error.
+          if (/already (registered|exists)/i.test(error.message)) {
+            const { error: loginError } = await supabase.auth.signInWithPassword({
+              email: parsed.data.email,
+              password: parsed.data.password,
+            });
+            if (!loginError) return;
+          }
+          throw error;
+        }
         clearStoredReferral();
         // Accounts are confirmed instantly; if no session came back, sign straight in.
         if (!data.session) {

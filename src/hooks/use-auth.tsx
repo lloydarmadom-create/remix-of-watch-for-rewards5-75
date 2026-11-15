@@ -52,7 +52,12 @@ export type PlayerProfile = {
   ads_completed: number;
   last_check_in_at: string | null;
   created_at: string;
+  creator_platform: string | null;
+  creator_handle: string | null;
 };
+
+const PROFILE_COLUMNS =
+  "email, referral_code, referred_by, coin_balance, level, is_banned, streak_count, lifetime_earned, ads_completed, last_check_in_at, created_at, creator_platform, creator_handle";
 
 /** The signed-in player's own profile row (RLS limits it to their row). */
 export function useProfile() {
@@ -61,15 +66,16 @@ export function useProfile() {
     queryKey: ["profile", user?.id],
     enabled: !!user,
     queryFn: async (): Promise<PlayerProfile | null> => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select(
-          "email, referral_code, referred_by, coin_balance, level, is_banned, streak_count, lifetime_earned, ads_completed, last_check_in_at, created_at",
-        )
-        .eq("id", user!.id)
-        .maybeSingle();
+      const read = () => supabase.from("profiles").select(PROFILE_COLUMNS).eq("id", user!.id).maybeSingle();
+      const { data, error } = await read();
       if (error) throw error;
-      return data;
+      if (data) return data;
+      // Fallback when the sign-up step didn't create the profile (e.g. a fresh copy of the app).
+      const { error: ensureError } = await supabase.rpc("ensure_profile");
+      if (ensureError) throw ensureError;
+      const retry = await read();
+      if (retry.error) throw retry.error;
+      return retry.data;
     },
   });
 }
