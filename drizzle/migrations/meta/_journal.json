@@ -1,13 +1,5 @@
 {
   "version": "7",
   "dialect": "postgresql",
-  "entries": [
-    {
-      "idx": 0,
-      "version": "7",
-      "when": 1794759590366,
-      "tag": "0000_remix_repair_and_creator_videos",
-      "breakpoints": true
-    }
-  ]
+  "entries": []
 }
