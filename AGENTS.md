@@ -30,8 +30,9 @@ use the editor.
 <!-- LOVABLE:END -->
 
 <!-- AGENT-MEMORY:BEGIN -->
-- App shell (TopBar, main Outlet, SiteFooter, BottomNav, CookieConsent) lives in `src/routes/__root.tsx`; pages render only their own content. Why: one shared mobile layout.
+- App shell (TopBar, main Outlet, SiteFooter, BottomNav, CookieConsent) lives in `src/routes/__root.tsx`, wrapped by `MaintenanceGate`; pages render only their own content. Why: one shared mobile layout and one maintenance switch.
 - Each bottom-nav tab is its own route file (`/` is Earn); `/admin` is unlinked and noindex. Why: shareable per-page metadata.
 - Cookie consent goes only through `src/lib/consent.ts` (copied unchanged from the consent skill) and the defaults script in `src/lib/consent-defaults.ts`, which must stay the first root head script. Why: Consent Mode must be set before any tag loads.
 - Reusable visuals (vault cards, chips, icon tiles, tactile button variants) live in `src/components/vault` and `components/ui/button.tsx`; styles come from tokens/utilities in `src/styles.css`. Why: no ad hoc colors.
+- Coin balances change only inside SECURITY DEFINER database functions that call `private.credit_coins`, which also writes the `transactions` ledger; `src/lib/earning.ts` mirrors the rules for display and tests. Why: players can't grant themselves coins, and every coin is logged.
 <!-- AGENT-MEMORY:END -->
