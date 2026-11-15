@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Ban, Clock, Loader2, Pause, Play, Sparkles, Store } from "lucide-react";
+import { Ban, Clock, Loader2, Pause, Play, Store } from "lucide-react";
+
+import { SponsorAd } from "@/components/ads/SponsorAd";
 
 import { Button } from "@/components/ui/button";
 import { Chip, VaultCard } from "@/components/vault/VaultCard";
@@ -114,8 +116,6 @@ export function SponsoredSlot() {
     }
   }, [now, window11.resetsAt, queryClient]);
 
-  const unit = settings?.aads_unit_id ?? "";
-  const showRealAd = !settings?.testing_mode && /^\d+$/.test(unit);
   const progress = 1 - remainingMs / (AD_SECONDS * 1000);
   const active = phase === "watching" || phase === "claiming";
 
@@ -135,39 +135,15 @@ export function SponsoredSlot() {
         ) : null}
       </div>
 
-      <div className="vault-well relative mt-3 grid aspect-[16/10] place-items-center overflow-hidden">
-        {active ? (
-          showRealAd ? (
-            <iframe
-              data-aa={unit}
-              src={`https://acceptable.a-ads.com/${unit}/?size=Adaptive`}
-              title="Sponsored"
-              className="size-full border-0 bg-transparent"
-              scrolling="no"
-            />
-          ) : (
+      <SponsorAd className="mt-3">
+        {phase === "done" ? (
+          <div className="animate-rise absolute inset-0 grid place-items-center bg-background/85 backdrop-blur-sm">
             <div className="text-center">
-              <Sparkles className="mx-auto size-7 text-cyan" />
-              <p className="mt-2 font-display text-sm font-semibold">Test ad</p>
-              <p className="text-xs text-muted-foreground">Sponsor content appears here.</p>
+              <p className="text-gold-gradient font-mono text-4xl font-semibold">+{formatCoins(COINS_PER_AD)}</p>
+              <p className="mt-1 font-display text-xs uppercase tracking-[0.18em] text-muted-foreground">Coin added</p>
             </div>
-          )
-        ) : phase === "done" ? (
-          <div className="animate-rise text-center">
-            <p className="text-gold-gradient font-mono text-4xl font-semibold">+{formatCoins(COINS_PER_AD)}</p>
-            <p className="mt-1 font-display text-xs uppercase tracking-[0.18em] text-muted-foreground">Coin added</p>
           </div>
-        ) : (
-          <div className="text-center">
-            <span className="mx-auto grid size-14 place-items-center rounded-full bg-cyan/12 text-cyan ring-1 ring-cyan/30 shadow-glow-cyan">
-              <Play className="size-6 translate-x-px" />
-            </span>
-            <p className="mt-3 text-xs text-muted-foreground">
-              Watch {AD_SECONDS}s · earn +{formatCoins(COINS_PER_AD)} Coin
-            </p>
-          </div>
-        )}
-
+        ) : null}
         {active && paused ? (
           <div className="absolute inset-0 grid place-items-center bg-background/85 backdrop-blur-sm">
             <div className="text-center">
@@ -177,7 +153,13 @@ export function SponsoredSlot() {
             </div>
           </div>
         ) : null}
-      </div>
+      </SponsorAd>
+
+      {!active && phase !== "done" ? (
+        <p className="mt-2.5 text-center text-xs text-muted-foreground">
+          Watch {AD_SECONDS}s · earn +{formatCoins(COINS_PER_AD)} Coin
+        </p>
+      ) : null}
 
       {active ? (
         <div className="mt-3">
