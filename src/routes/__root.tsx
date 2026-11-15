@@ -20,6 +20,7 @@ import { CookieConsent } from "@/components/consent/CookieConsent";
 import { ContactSupport } from "@/components/support/ContactSupport";
 import { AuthProvider } from "@/hooks/use-auth";
 import { MaintenanceGate } from "@/components/layout/MaintenanceGate";
+import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
   return (
@@ -151,6 +152,7 @@ function RootComponent() {
       </MaintenanceGate>
       <CookieConsent />
       <ContactSupport />
+      <Toaster theme="dark" position="top-center" richColors closeButton />
       </AuthProvider>
     </QueryClientProvider>
   );

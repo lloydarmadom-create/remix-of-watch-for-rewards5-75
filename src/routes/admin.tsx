@@ -1,10 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
-import { Gift, Inbox, Lock, ShieldAlert, Users, Wallet } from "lucide-react";
+import { Inbox, ShieldAlert } from "lucide-react";
 
-import { AdPreviewCard } from "@/components/admin/AdPreviewCard";
 import { AppSettingsCard } from "@/components/admin/AppSettingsCard";
+import { AuditLogCard } from "@/components/admin/AuditLogCard";
+import { PayoutQueue } from "@/components/admin/PayoutQueue";
+import { PlayersCard } from "@/components/admin/PlayersCard";
+import { RobloxChanges } from "@/components/admin/RobloxChanges";
+import { VaultStockCard } from "@/components/admin/VaultStockCard";
 import { VideoReviewQueue } from "@/components/admin/VideoReviewQueue";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -38,12 +42,6 @@ export const Route = createFileRoute("/admin")({
   }),
   component: AdminPage,
 });
-
-const LOCKED = [
-  { name: "Players", icon: Users },
-  { name: "Payout queue", icon: Wallet },
-  { name: "Store items", icon: Gift },
-];
 
 const categoryLabel = (v: string) => SUPPORT_CATEGORIES.find((c) => c.value === v)?.label ?? v;
 
@@ -87,8 +85,10 @@ function AdminPage() {
         </p>
       </VaultCard>
 
+      <PayoutQueue />
+      <VaultStockCard />
       <AppSettingsCard />
-      <AdPreviewCard />
+      <RobloxChanges />
       <VideoReviewQueue />
 
       <section aria-labelledby="inbox" className="space-y-2.5">
@@ -142,20 +142,8 @@ function AdminPage() {
         )}
       </section>
 
-      <div className="grid grid-cols-2 gap-3">
-        {LOCKED.map((m) => (
-          <VaultCard key={m.name} className="p-4 opacity-80">
-            <div className="flex items-center justify-between">
-              <IconTile tone="muted">
-                <m.icon />
-              </IconTile>
-              <Lock className="size-4 text-muted-foreground" />
-            </div>
-            <p className="mt-3 font-display font-semibold">{m.name}</p>
-            <Chip className="mt-1.5">Soon</Chip>
-          </VaultCard>
-        ))}
-      </div>
+      <PlayersCard />
+      <AuditLogCard />
     </div>
   );
 }

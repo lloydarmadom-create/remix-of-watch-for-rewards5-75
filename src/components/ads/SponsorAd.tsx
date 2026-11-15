@@ -37,6 +37,8 @@ function useAdLease(enabled: boolean) {
 export const AD_WIDTH = 300;
 export const AD_HEIGHT = 250;
 
+export const isAdUnitId = (unit: string) => /^\d{1,12}$/.test(unit);
+
 export function aadsSrc(unit: string) {
   return `https://ad.a-ads.com/${unit}?size=${AD_WIDTH}x${AD_HEIGHT}`;
 }
@@ -45,13 +47,24 @@ export function aadsSrc(unit: string) {
 export function useLiveAdUnit() {
   const { data } = useAppSettings();
   const unit = data?.aads_unit_id ?? "";
-  const live = !!data && !data.testing_mode && /^\d{1,12}$/.test(unit);
+  const live = !!data && !data.testing_mode && isAdUnitId(unit);
   return { unit, live, testing: !!data?.testing_mode, loaded: !!data };
 }
 
 /** The single isolated 300x250 A-ADS slot, or a clean test placeholder. */
-export function SponsorAd({ className, children }: { className?: string; children?: ReactNode }) {
-  const { unit, live } = useLiveAdUnit();
+export function SponsorAd({
+  className,
+  children,
+  preview,
+}: {
+  className?: string;
+  children?: ReactNode;
+  /** Admin preview: show this unit instead of the saved one. */
+  preview?: { unit: string; testing: boolean };
+}) {
+  const saved = useLiveAdUnit();
+  const unit = preview ? preview.unit : saved.unit;
+  const live = preview ? !preview.testing && isAdUnitId(preview.unit) : saved.live;
   const holdsLease = useAdLease(live);
 
   return (
@@ -61,6 +74,7 @@ export function SponsorAd({ className, children }: { className?: string; childre
     >
       {live && holdsLease ? (
         <iframe
+          key={unit}
           data-aa={unit}
           src={aadsSrc(unit)}
           title="Sponsored"

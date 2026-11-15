@@ -2,10 +2,12 @@ import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Settings2 } from "lucide-react";
 
+import { isAdUnitId, SponsorAd } from "@/components/ads/SponsorAd";
+
 import { Field, fieldClass } from "@/components/auth/AuthPanel";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { IconTile, VaultCard } from "@/components/vault/VaultCard";
+import { Chip, IconTile, VaultCard } from "@/components/vault/VaultCard";
 import { appSettingsKey, errorText, useAppSettings, type AppSettings } from "@/hooks/use-earn";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -16,8 +18,9 @@ export function AppSettingsCard() {
   const [draft, setDraft] = useState<AppSettings | null>(null);
   const [saved, setSaved] = useState(false);
 
+  // Load once; the minute-by-minute refresh must not wipe edits in progress.
   useEffect(() => {
-    if (data) setDraft(data);
+    if (data) setDraft((d) => d ?? data);
   }, [data]);
 
   const save = useMutation({
@@ -29,8 +32,7 @@ export function AppSettingsCard() {
           maintenance_message: next.maintenance_message.trim() || "Vault maintenance in progress. Be right back!",
           testing_mode: next.testing_mode,
           aads_unit_id: next.aads_unit_id.trim(),
-          sats_stock: Math.max(0, Math.floor(next.sats_stock)),
-          robux_stock: Math.max(0, Math.floor(next.robux_stock)),
+          // Vault stock is never written here: redemptions change it live, so it has its own panel.
         })
         .eq("id", 1);
       if (error) throw error;
@@ -90,28 +92,7 @@ export function AppSettingsCard() {
             className={cn(fieldClass, "font-mono")}
           />
         </Field>
-        <div className="grid grid-cols-2 gap-2.5">
-          <Field label="Sats stock" htmlFor="set-sats">
-            <input
-              id="set-sats"
-              type="number"
-              min={0}
-              value={draft.sats_stock}
-              onChange={(e) => set("sats_stock", Number(e.target.value) || 0)}
-              className={cn(fieldClass, "font-mono")}
-            />
-          </Field>
-          <Field label="Robux stock" htmlFor="set-robux">
-            <input
-              id="set-robux"
-              type="number"
-              min={0}
-              value={draft.robux_stock}
-              onChange={(e) => set("robux_stock", Number(e.target.value) || 0)}
-              className={cn(fieldClass, "font-mono")}
-            />
-          </Field>
-        </div>
+        <AdUnitPreview unit={draft.aads_unit_id} testing={draft.testing_mode} />
       </div>
 
       {save.isError ? <p className="mt-3 text-xs text-destructive">{errorText(save.error)}</p> : null}
@@ -150,5 +131,35 @@ function Toggle({
       </div>
       <Switch checked={checked} onCheckedChange={onChange} className="data-[state=checked]:bg-emerald" />
     </label>
+  );
+}
+
+/** Live 300x250 preview of the unit typed above, so the admin can check it before saving. */
+function AdUnitPreview({ unit, testing }: { unit: string; testing: boolean }) {
+  const [shown, setShown] = useState(unit);
+  useEffect(() => {
+    const id = window.setTimeout(() => setShown(unit), 600);
+    return () => window.clearTimeout(id);
+  }, [unit]);
+  const live = !testing && isAdUnitId(shown);
+  const status = live ? "Live preview" : testing ? "Testing mode" : shown ? "Invalid ID" : "No unit ID";
+
+  return (
+    <div className="vault-well p-3">
+      <div className="mb-2.5 flex items-center justify-between gap-2">
+        <p className="font-display text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+          A-ADS preview · 300 × 250
+        </p>
+        <Chip tone={live ? "emerald" : "gold"}>{status}</Chip>
+      </div>
+      <SponsorAd preview={{ unit: shown, testing }} />
+      <p className="mt-2 text-center text-xs text-muted-foreground">
+        {testing
+          ? "Testing mode is on, so players see the test placeholder."
+          : live
+            ? "Save settings to show this unit to players."
+            : "Enter your A-ADS unit ID to preview the real ad."}
+      </p>
+    </div>
   );
 }

@@ -2,7 +2,8 @@ import { useState, type FormEvent } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Clock, Loader2, Upload } from "lucide-react";
+import { Clock, Loader2, ShieldCheck, Upload } from "lucide-react";
+import { toast } from "sonner";
 
 import { Field, fieldClass } from "@/components/auth/AuthPanel";
 import { BotFlagList, ScanChips } from "@/components/videos/BotFlags";
@@ -87,6 +88,9 @@ export function SubmitVideoCard() {
     try {
       const res = await submit({ data: { url: url.trim(), title: title.trim(), format: format!, agreed: true } });
       setResult(res);
+      toast.success("Submitted for Admin Review", {
+        description: "Your video stays pending until the admin approves it. Check its status under My submissions.",
+      });
       setUrl("");
       setTitle("");
       setFormat(null);
@@ -115,8 +119,11 @@ export function SubmitVideoCard() {
       </div>
 
       {result ? (
-        <div className="vault-well mt-4 space-y-2 p-3">
-          <p className="text-sm font-semibold">Submitted. It stays pending until the admin reviews it.</p>
+        <div role="status" className="mt-4 space-y-2 rounded-xl bg-emerald/10 p-3 ring-1 ring-emerald/30">
+          <p className="flex items-center gap-2 font-display text-sm font-semibold text-emerald">
+            <ShieldCheck className="size-4" /> Submitted for Admin Review
+          </p>
+          <p className="text-xs text-muted-foreground">It stays pending until the admin approves or rejects it.</p>
           <div className="flex flex-wrap gap-1.5">
             <Chip tone="gold">Pending</Chip>
             <ScanChips scan={result.scanStatus} risk={result.riskLevel} />

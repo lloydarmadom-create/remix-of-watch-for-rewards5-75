@@ -2,14 +2,16 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
-import { CalendarCheck, Gift, Play, ScrollText, SlidersHorizontal, Users } from "lucide-react";
+import { Bitcoin, CalendarCheck, Clapperboard, Gamepad2, Gift, Play, ScrollText, SlidersHorizontal, Undo2, Users } from "lucide-react";
 
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
-import { IconTile, VaultCard } from "@/components/vault/VaultCard";
+import { Chip, IconTile, VaultCard } from "@/components/vault/VaultCard";
 import { useAuth } from "@/hooks/use-auth";
+import { useMyPayouts, type MyPayout } from "@/hooks/use-payouts";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCoins } from "@/lib/earning";
+import { REWARDS, STATUS_LABEL } from "@/lib/payouts";
 
 export const Route = createFileRoute("/history")({
   head: () => ({
@@ -25,7 +27,7 @@ export const Route = createFileRoute("/history")({
   component: HistoryPage,
 });
 
-const FILTERS = ["All", "Earned", "Redeemed"] as const;
+const FILTERS = ["All", "Earned", "Withdrawals"] as const;
 type Filter = (typeof FILTERS)[number];
 
 const KIND = {
@@ -33,6 +35,9 @@ const KIND = {
   streak: { icon: CalendarCheck, tone: "gold", label: "Daily check-in" },
   referral: { icon: Users, tone: "emerald", label: "Invite reward" },
   redeem: { icon: Gift, tone: "gold", label: "Reward redeemed" },
+  refund: { icon: Undo2, tone: "emerald", label: "Payout refunded" },
+  video_view: { icon: Clapperboard, tone: "cyan", label: "Video watched" },
+  video_creator: { icon: Clapperboard, tone: "emerald", label: "Creator reward" },
   adjustment: { icon: SlidersHorizontal, tone: "muted", label: "Balance adjustment" },
 } as const;
 
@@ -54,9 +59,11 @@ function HistoryPage() {
     },
   });
 
-  const rows = (tx.data ?? []).filter((t) =>
-    filter === "All" ? true : filter === "Earned" ? Number(t.amount) > 0 : t.kind === "redeem",
-  );
+  const payouts = useMyPayouts();
+  const withdrawals = payouts.data ?? [];
+  const rows = (tx.data ?? []).filter((t) => (filter === "Earned" ? Number(t.amount) > 0 && t.kind !== "refund" : true));
+  const loading = tx.isLoading || payouts.isLoading;
+  const nothing = filter === "Withdrawals" ? withdrawals.length === 0 : rows.length === 0 && (filter === "Earned" || withdrawals.length === 0);
 
   return (
     <div>
@@ -76,7 +83,7 @@ function HistoryPage() {
         ))}
       </div>
 
-      {!ready || (user && tx.isLoading) ? (
+      {!ready || (user && loading) ? (
         <VaultCard className="h-40 skeleton-shimmer" />
       ) : !user ? (
         <Empty title="Sign in to see your ledger" body="Coins you earn and rewards you redeem will show up here.">
@@ -86,13 +93,21 @@ function HistoryPage() {
         </Empty>
       ) : tx.isError ? (
         <VaultCard className="p-4 text-sm text-destructive">We couldn't load your history. Please reload the page.</VaultCard>
-      ) : rows.length === 0 ? (
-        <Empty title="Nothing here yet" body="Coins you earn and rewards you redeem will show up here.">
+      ) : nothing ? (
+        <Empty
+          title={filter === "Withdrawals" ? "No withdrawals yet" : "Nothing here yet"}
+          body={filter === "Withdrawals" ? "Rewards you redeem in the Store show up here with their status." : "Coins you earn and rewards you redeem will show up here."}
+        >
           <Button asChild variant="cyan" size="tactile-sm" className="mt-5">
             <Link to="/">Watch an ad</Link>
           </Button>
         </Empty>
       ) : (
+        <div className="space-y-4">
+          {filter !== "Earned" && withdrawals.length ? <Withdrawals list={withdrawals} /> : null}
+          {filter !== "Withdrawals" && rows.length ? (
+        <section aria-label="Coin ledger" className="space-y-2">
+          {filter === "All" ? <SectionTitle>Coin ledger</SectionTitle> : null}
         <VaultCard className="animate-rise divide-y divide-border p-0">
           {rows.map((t) => {
             const k = KIND[t.kind as keyof typeof KIND] ?? KIND.adjustment;
@@ -116,8 +131,53 @@ function HistoryPage() {
             );
           })}
         </VaultCard>
+        </section>
+          ) : null}
+        </div>
       )}
     </div>
+  );
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return <h2 className="px-1 text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">{children}</h2>;
+}
+
+function Withdrawals({ list }: { list: MyPayout[] }) {
+  return (
+    <section aria-label="Withdrawals" className="space-y-2">
+      <SectionTitle>Withdrawals</SectionTitle>
+      <VaultCard className="animate-rise divide-y divide-border p-0">
+        {list.map((p) => {
+          const sats = p.category === "sats";
+          const tone = p.status === "paid" ? "emerald" : p.status === "pending" ? "gold" : "muted";
+          return (
+            <div key={p.id} className="px-4 py-3">
+              <div className="flex items-center gap-3">
+                <IconTile tone={sats ? "gold" : "emerald"} className="size-9">
+                  {sats ? <Bitcoin /> : <Gamepad2 />}
+                </IconTile>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">{REWARDS[p.reward]?.title ?? p.reward}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatDistanceToNow(new Date(p.created_at), { addSuffix: true })} · −{formatCoins(Number(p.coins_cost))} coins
+                  </p>
+                </div>
+                <Chip tone={tone} className="shrink-0">
+                  {STATUS_LABEL[p.status] ?? p.status}
+                </Chip>
+              </div>
+              <p className="mt-1.5 truncate pl-12 font-mono text-[0.68rem] text-muted-foreground">
+                {sats ? p.destination : `Gamepass ${p.gamepass_id ?? ""}`}
+              </p>
+              {p.admin_note && p.status !== "pending" ? (
+                <p className="mt-1 pl-12 text-xs text-muted-foreground">Note: {p.admin_note}</p>
+              ) : null}
+            </div>
+          );
+        })}
+      </VaultCard>
+    </section>
   );
 }
 
