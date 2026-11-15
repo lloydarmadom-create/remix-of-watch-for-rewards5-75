@@ -14,13 +14,158 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      ad_sessions: {
+        Row: {
+          coins_awarded: number
+          completed_at: string | null
+          id: string
+          started_at: string
+          user_id: string
+        }
+        Insert: {
+          coins_awarded?: number
+          completed_at?: string | null
+          id?: string
+          started_at?: string
+          user_id: string
+        }
+        Update: {
+          coins_awarded?: number
+          completed_at?: string | null
+          id?: string
+          started_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_sessions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          coin_balance: number
+          created_at: string
+          email: string
+          id: string
+          is_banned: boolean
+          last_streak_on: string | null
+          referral_code: string
+          referred_by: string | null
+          roblox_username: string | null
+          streak_count: number
+          tiktok_handle: string | null
+          updated_at: string
+          youtube_handle: string | null
+        }
+        Insert: {
+          coin_balance?: number
+          created_at?: string
+          email?: string
+          id: string
+          is_banned?: boolean
+          last_streak_on?: string | null
+          referral_code: string
+          referred_by?: string | null
+          roblox_username?: string | null
+          streak_count?: number
+          tiktok_handle?: string | null
+          updated_at?: string
+          youtube_handle?: string | null
+        }
+        Update: {
+          coin_balance?: number
+          created_at?: string
+          email?: string
+          id?: string
+          is_banned?: boolean
+          last_streak_on?: string | null
+          referral_code?: string
+          referred_by?: string | null
+          roblox_username?: string | null
+          streak_count?: number
+          tiktok_handle?: string | null
+          updated_at?: string
+          youtube_handle?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_referred_by_fkey"
+            columns: ["referred_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vault_settings: {
+        Row: {
+          ad_min_seconds: number
+          coins_per_ad: number
+          daily_ad_limit: number
+          id: number
+          streak_coins: number
+          updated_at: string
+        }
+        Insert: {
+          ad_min_seconds?: number
+          coins_per_ad?: number
+          daily_ad_limit?: number
+          id?: number
+          streak_coins?: number
+          updated_at?: string
+        }
+        Update: {
+          ad_min_seconds?: number
+          coins_per_ad?: number
+          daily_ad_limit?: number
+          id?: number
+          streak_coins?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      admin_list_profiles: {
+        Args: never
+        Returns: {
+          coin_balance: number
+          created_at: string
+          email: string
+          id: string
+          is_banned: boolean
+          last_streak_on: string | null
+          referral_code: string
+          referred_by: string | null
+          roblox_username: string | null
+          streak_count: number
+          tiktok_handle: string | null
+          updated_at: string
+          youtube_handle: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      admin_set_banned: {
+        Args: { p_banned: boolean; p_user_id: string }
+        Returns: undefined
+      }
+      claim_streak: { Args: never; Returns: number }
+      complete_ad_view: { Args: { p_session_id: string }; Returns: number }
+      is_admin: { Args: never; Returns: boolean }
+      start_ad_view: { Args: never; Returns: string }
     }
     Enums: {
       [_ in never]: never
