@@ -43,6 +43,47 @@ export type Database = {
           },
         ]
       }
+      contact_messages: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          message: string
+          reply_email: string
+          sender_name: string
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          message: string
+          reply_email: string
+          sender_name: string
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          message?: string
+          reply_email?: string
+          sender_name?: string
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contact_messages_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           ads_watched_window: number
@@ -55,6 +96,7 @@ export type Database = {
           last_sats_payout_at: string | null
           last_streak_claim_at: string | null
           last_video_submit_at: string | null
+          level: number
           lifetime_ads_watched: number
           referral_code: string
           referred_by: string | null
@@ -76,6 +118,7 @@ export type Database = {
           last_sats_payout_at?: string | null
           last_streak_claim_at?: string | null
           last_video_submit_at?: string | null
+          level?: number
           lifetime_ads_watched?: number
           referral_code: string
           referred_by?: string | null
@@ -97,6 +140,7 @@ export type Database = {
           last_sats_payout_at?: string | null
           last_streak_claim_at?: string | null
           last_video_submit_at?: string | null
+          level?: number
           lifetime_ads_watched?: number
           referral_code?: string
           referred_by?: string | null
@@ -169,6 +213,7 @@ export type Database = {
           last_sats_payout_at: string | null
           last_streak_claim_at: string | null
           last_video_submit_at: string | null
+          level: number
           lifetime_ads_watched: number
           referral_code: string
           referred_by: string | null
