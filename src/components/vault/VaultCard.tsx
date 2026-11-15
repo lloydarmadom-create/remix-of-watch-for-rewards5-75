@@ -16,7 +16,7 @@ const rim = cva("pointer-events-none absolute inset-x-6 top-0 h-px", {
 });
 
 type VaultCardProps = VariantProps<typeof rim> & {
-  children: ReactNode;
+  children?: ReactNode;
   className?: string;
   as?: "div" | "section" | "article";
 };
