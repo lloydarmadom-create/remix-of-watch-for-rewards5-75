@@ -46,6 +46,39 @@ export type Database = {
           },
         ]
       }
+      app_settings: {
+        Row: {
+          aads_unit_id: string
+          id: number
+          maintenance_message: string
+          maintenance_mode: boolean
+          robux_stock: number
+          sats_stock: number
+          testing_mode: boolean
+          updated_at: string
+        }
+        Insert: {
+          aads_unit_id?: string
+          id?: number
+          maintenance_message?: string
+          maintenance_mode?: boolean
+          robux_stock?: number
+          sats_stock?: number
+          testing_mode?: boolean
+          updated_at?: string
+        }
+        Update: {
+          aads_unit_id?: string
+          id?: number
+          maintenance_message?: string
+          maintenance_mode?: boolean
+          robux_stock?: number
+          sats_stock?: number
+          testing_mode?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       contact_messages: {
         Row: {
           category: string
@@ -89,13 +122,16 @@ export type Database = {
       }
       profiles: {
         Row: {
+          ads_completed: number
           coin_balance: number
           created_at: string
           email: string
           id: string
           is_banned: boolean
+          last_check_in_at: string | null
           last_streak_on: string | null
           level: number
+          lifetime_earned: number
           referral_code: string
           referred_by: string | null
           roblox_username: string | null
@@ -105,13 +141,16 @@ export type Database = {
           youtube_handle: string | null
         }
         Insert: {
+          ads_completed?: number
           coin_balance?: number
           created_at?: string
           email?: string
           id: string
           is_banned?: boolean
+          last_check_in_at?: string | null
           last_streak_on?: string | null
           level?: number
+          lifetime_earned?: number
           referral_code: string
           referred_by?: string | null
           roblox_username?: string | null
@@ -121,13 +160,16 @@ export type Database = {
           youtube_handle?: string | null
         }
         Update: {
+          ads_completed?: number
           coin_balance?: number
           created_at?: string
           email?: string
           id?: string
           is_banned?: boolean
+          last_check_in_at?: string | null
           last_streak_on?: string | null
           level?: number
+          lifetime_earned?: number
           referral_code?: string
           referred_by?: string | null
           roblox_username?: string | null
@@ -140,6 +182,41 @@ export type Database = {
           {
             foreignKeyName: "profiles_referred_by_fkey"
             columns: ["referred_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          kind: string
+          note: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          kind: string
+          note?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          kind?: string
+          note?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transactions_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -181,13 +258,16 @@ export type Database = {
       admin_list_profiles: {
         Args: never
         Returns: {
+          ads_completed: number
           coin_balance: number
           created_at: string
           email: string
           id: string
           is_banned: boolean
+          last_check_in_at: string | null
           last_streak_on: string | null
           level: number
+          lifetime_earned: number
           referral_code: string
           referred_by: string | null
           roblox_username: string | null
@@ -209,6 +289,7 @@ export type Database = {
       }
       claim_streak: { Args: never; Returns: number }
       complete_ad_view: { Args: { p_session_id: string }; Returns: number }
+      get_earn_status: { Args: never; Returns: Json }
       is_admin: { Args: never; Returns: boolean }
       start_ad_view: { Args: never; Returns: string }
     }

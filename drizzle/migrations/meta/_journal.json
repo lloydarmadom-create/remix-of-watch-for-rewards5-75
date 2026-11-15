@@ -29,6 +29,13 @@
       "when": 1794756152528,
       "tag": "0003_tighten_support_inbox_grants",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794756636901,
+      "tag": "0004_earning_engine_and_app_settings",
+      "breakpoints": true
     }
   ]
 }
