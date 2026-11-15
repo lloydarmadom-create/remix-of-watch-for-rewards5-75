@@ -3,6 +3,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
 import { Clapperboard, Gift, Inbox, Lock, ShieldAlert, Users, Wallet } from "lucide-react";
 
+import { AppSettingsCard } from "@/components/admin/AppSettingsCard";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Chip, IconTile, VaultCard } from "@/components/vault/VaultCard";
@@ -84,6 +85,8 @@ function AdminPage() {
           All admin decisions on accounts, rewards and payouts are final and cannot be appealed.
         </p>
       </VaultCard>
+
+      <AppSettingsCard />
 
       <section aria-labelledby="inbox" className="space-y-2.5">
         <div className="flex items-center justify-between px-1 pt-2">
