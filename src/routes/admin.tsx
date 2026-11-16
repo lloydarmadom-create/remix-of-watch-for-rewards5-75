@@ -3,6 +3,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
 import { Inbox, ShieldAlert } from "lucide-react";
 
+import { AdNetworksCard } from "@/components/admin/AdNetworksCard";
 import { AppSettingsCard } from "@/components/admin/AppSettingsCard";
 import { AuditLogCard } from "@/components/admin/AuditLogCard";
 import { PayoutQueue } from "@/components/admin/PayoutQueue";
@@ -88,6 +89,7 @@ function AdminPage() {
       <PayoutQueue />
       <VaultStockCard />
       <AppSettingsCard />
+      <AdNetworksCard />
       <RobloxChanges />
       <VideoReviewQueue />
 

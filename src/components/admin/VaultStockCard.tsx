@@ -5,7 +5,7 @@ import { Bitcoin, Gamepad2, Loader2, Vault } from "lucide-react";
 import { Field, fieldClass } from "@/components/auth/AuthPanel";
 import { Button } from "@/components/ui/button";
 import { IconTile, VaultCard } from "@/components/vault/VaultCard";
-import { appSettingsKey, errorText, useAppSettings } from "@/hooks/use-earn";
+import { adminStockKey, errorText, useAdminStock } from "@/hooks/use-earn";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
  * taken while this screen is open is never overwritten.
  */
 export function VaultStockCard() {
-  const { data } = useAppSettings();
+  const { data } = useAdminStock();
   const queryClient = useQueryClient();
   const [sats, setSats] = useState("");
   const [robux, setRobux] = useState("");
@@ -27,7 +27,7 @@ export function VaultStockCard() {
     onSuccess: () => {
       setSats("");
       setRobux("");
-      void queryClient.invalidateQueries({ queryKey: appSettingsKey });
+      void queryClient.invalidateQueries({ queryKey: adminStockKey });
       void queryClient.invalidateQueries({ queryKey: ["admin", "audit_logs"] });
     },
   });

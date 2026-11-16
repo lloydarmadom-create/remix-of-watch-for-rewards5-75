@@ -23,7 +23,7 @@ export type RedeemResult =
 async function precheck(supabase: SupabaseClient<Database>, userId: string, reward: Reward) {
   const [profile, settings, payouts] = await Promise.all([
     supabase.from("profiles").select("coin_balance, is_banned, roblox_user_id").eq("id", userId).maybeSingle(),
-    supabase.from("app_settings").select("maintenance_mode, testing_mode, sats_stock, robux_stock").eq("id", 1).maybeSingle(),
+    supabase.from("app_settings").select("maintenance_mode, testing_mode").eq("id", 1).maybeSingle(),
     supabase
       .from("payout_requests")
       .select("category, status, created_at")
@@ -36,14 +36,14 @@ async function precheck(supabase: SupabaseClient<Database>, userId: string, rewa
     return { error: "We couldn't load your account. Please try again.", robloxUserId: null };
   }
   const p = profile.data as { coin_balance: number; is_banned: boolean; roblox_user_id: number | null };
-  const s = settings.data as { maintenance_mode: boolean; testing_mode: boolean; sats_stock: number; robux_stock: number };
+  const s = settings.data as { maintenance_mode: boolean; testing_mode: boolean };
   const error = precheckRedemption({
     reward,
     coinBalance: Number(p.coin_balance),
     isBanned: p.is_banned,
     maintenance: s.maintenance_mode,
     testingMode: s.testing_mode,
-    stock: reward.category === "sats" ? s.sats_stock : s.robux_stock,
+    stock: Number.POSITIVE_INFINITY, // players can't read stock; redeem_reward checks it
     payouts: payouts.data ?? [],
     now: Date.now(),
     robloxUserId: p.roblox_user_id,

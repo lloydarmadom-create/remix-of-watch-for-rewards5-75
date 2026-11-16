@@ -5,7 +5,7 @@ import { Bitcoin, Clock, Gamepad2, Lock, Timer } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { RobuxRedeemDialog } from "@/components/store/RobuxRedeemDialog";
 import { SatsRedeemDialog } from "@/components/store/SatsRedeemDialog";
-import { PolicyCard, VaultStockBars } from "@/components/store/StoreBits";
+import { PolicyCard } from "@/components/store/StoreBits";
 import { Button } from "@/components/ui/button";
 import { Chip, IconTile, VaultCard } from "@/components/vault/VaultCard";
 import { useAuth, useProfile } from "@/hooks/use-auth";
@@ -40,7 +40,6 @@ function StorePage() {
         Spend coins on real Sats and Robux. Every payout is checked and sent by hand.
       </PageHeader>
       <PolicyCard />
-      <VaultStockBars sats={settings?.sats_stock} robux={settings?.robux_stock} />
       {settings?.testing_mode ? (
         <p className="rounded-lg bg-gold/10 px-3 py-2 text-center text-xs text-gold ring-1 ring-gold/25">
           Testing mode is on: cooldowns are skipped.
@@ -79,7 +78,7 @@ function RewardCard({ reward, onRedeem }: { reward: Reward; onRedeem: () => void
         isBanned: profile.is_banned,
         maintenance: settings.maintenance_mode,
         testingMode: testing,
-        stock: sats ? settings.sats_stock : settings.robux_stock,
+        stock: Number.POSITIVE_INFINITY, // stock is private; the database checks it on redeem
         payouts: payouts.data ?? [],
         now: now || Date.now(),
         robloxUserId: 1, // username is verified inside the redeem window
@@ -104,7 +103,6 @@ function RewardCard({ reward, onRedeem }: { reward: Reward; onRedeem: () => void
         <Chip>
           <Timer className="size-3" /> {sats ? "24-hour Sats cooldown" : "7-day Robux cooldown"}
         </Chip>
-        <Chip>−{reward.stockCost} {sats ? "Sats" : "Robux"} stock</Chip>
         {user ? (
           cd.bypassed ? (
             <Chip tone="gold">Cooldown off</Chip>
