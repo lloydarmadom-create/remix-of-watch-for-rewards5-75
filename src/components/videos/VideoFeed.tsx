@@ -1,15 +1,17 @@
 import { useCallback, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { CheckCheck, Eye, Lock, Play, Store, UserRound, X } from "lucide-react";
+import { CheckCheck, Eye, Lock, Play, Store, Unlock, UserRound, X } from "lucide-react";
 
 import { UnlockDialog, type UnlockResult } from "@/components/videos/UnlockDialog";
 import { VideoPlayer } from "@/components/videos/VideoPlayer";
 import { Button } from "@/components/ui/button";
 import { Chip, VaultCard } from "@/components/vault/VaultCard";
 import { useAuth, useProfile } from "@/hooks/use-auth";
-import { useApprovedVideos, useWatchedVideos, type FeedVideo } from "@/hooks/use-videos";
+import { useNow } from "@/hooks/use-earn";
+import { useApprovedVideos, useUnlockedVideos, type FeedVideo } from "@/hooks/use-videos";
 import { FORMAT_LABEL, PLATFORM_LABEL, VIDEO_REWARDS, idFromKey, thumbnailFor } from "@/lib/creator-videos";
 import { atCoinCap, formatCoins } from "@/lib/earning";
+import { formatWait } from "@/lib/payouts";
 
 type Notice = { videoId: string; result: UnlockResult };
 
@@ -17,7 +19,8 @@ export function VideoFeed() {
   const { user } = useAuth();
   const { data: profile } = useProfile();
   const videos = useApprovedVideos();
-  const watched = useWatchedVideos();
+  const unlocked = useUnlockedVideos();
+  const now = useNow(30_000);
   const [unlocking, setUnlocking] = useState<FeedVideo | null>(null);
   const [playing, setPlaying] = useState<string | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
@@ -66,14 +69,15 @@ export function VideoFeed() {
       {videos.data.map((v) => {
         const id = idFromKey(v.video_key);
         const own = v.creator_id === user?.id;
-        const isWatched = watched.data?.has(v.id) ?? false;
+        const until = unlocked.data?.get(v.id) ?? null;
+        const isUnlocked = !own && until !== null && (!now || until > now);
         const isPlaying = playing === v.id;
         const thumb = thumbnailFor(v.platform, id, v.thumbnail_url);
         const reward = VIDEO_REWARDS[v.format].viewer;
         const n = notice?.videoId === v.id ? notice.result : null;
 
         return (
-          <VaultCard key={v.id} as="article" accent={isPlaying ? "cyan" : "none"} className="animate-rise p-3">
+          <VaultCard key={v.id} as="article" accent={isPlaying ? "cyan" : own ? "gold" : "none"} className="animate-rise p-3">
             {isPlaying ? (
               <div className="relative">
                 <VideoPlayer platform={v.platform} id={id} format={v.format} title={v.title} />
@@ -95,13 +99,17 @@ export function VideoFeed() {
                     <Play className="size-8 text-cyan" />
                   </div>
                 )}
-                <div className="absolute left-2 top-2 flex gap-1.5">
+                <div className="absolute left-2 top-2 flex flex-wrap gap-1.5">
                   <Chip tone="cyan" className="bg-background/80">
                     {FORMAT_LABEL[v.format]}
                   </Chip>
-                  {isWatched ? (
+                  {own ? (
+                    <Chip tone="gold" className="bg-background/80">
+                      YOUR VIDEO • 0 COINS
+                    </Chip>
+                  ) : isUnlocked ? (
                     <Chip tone="emerald" className="bg-background/80">
-                      <CheckCheck className="size-3" /> Watched
+                      <CheckCheck className="size-3" /> WATCHED
                     </Chip>
                   ) : null}
                 </div>
@@ -118,8 +126,8 @@ export function VideoFeed() {
                 }
               >
                 {n.counted
-                  ? `+${formatCoins(n.viewerReward)} Coin added. The creator earned +${formatCoins(n.creatorReward)}.`
-                  : "WATCHED: this video was already counted for your account or network in the last 24 hours. No coins this time, enjoy the video."}
+                  ? `+${formatCoins(n.viewerReward)} Coin added. The creator earned +${formatCoins(n.creatorReward)}. Replay it free for 24 hours.`
+                  : "WATCHED: this video was already counted for your account or network in the last 24 hours. 0 coins and 0 views this time, enjoy the video."}
               </p>
             ) : null}
 
@@ -133,23 +141,28 @@ export function VideoFeed() {
                   </span>
                 </p>
               </div>
-              {!own && !isWatched ? <Chip tone="gold">+{formatCoins(reward)}</Chip> : null}
+              {!own && !isUnlocked ? <Chip tone="gold">+{formatCoins(reward)}</Chip> : null}
             </div>
 
             {isPlaying ? null : own ? (
-              <p className="vault-well mt-2.5 px-3 py-2 text-center text-xs text-muted-foreground">
-                Your video. Creators can't watch or earn from their own videos.
-              </p>
-            ) : isWatched ? (
               <Button variant="slate" size="tactile-sm" className="mt-2.5 w-full" onClick={() => setPlaying(v.id)}>
-                <Play /> Play again (no reward)
+                <Play /> Watch your video · 0 coins
               </Button>
+            ) : isUnlocked ? (
+              <>
+                <Button variant="slate" size="tactile-sm" className="mt-2.5 w-full" onClick={() => setPlaying(v.id)}>
+                  <Unlock /> Replay free · 0 coins
+                </Button>
+                <p className="mt-1.5 text-center text-[0.7rem] text-muted-foreground">
+                  Unlocked for {until && now ? formatWait(until - now) : "24h"} more. No ad needed.
+                </p>
+              </>
             ) : (
               <Button
                 variant="cyan"
                 size="tactile-sm"
                 className="mt-2.5 w-full"
-                disabled={capped || profile?.is_banned}
+                disabled={capped || profile?.is_banned || unlocked.isLoading}
                 onClick={() => {
                   setNotice(null);
                   setUnlocking(v);

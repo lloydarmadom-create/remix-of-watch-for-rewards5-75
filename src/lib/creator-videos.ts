@@ -27,8 +27,40 @@ export function normalizeHandle(input: string): string | null {
   let h = input.trim();
   const fromUrl = h.match(/(?:youtube\.com|tiktok\.com)\/@([^/?#\s]+)/i);
   if (fromUrl?.[1]) h = fromUrl[1];
+  const channelId = h.match(/youtube\.com\/channel\/(UC[A-Za-z0-9_-]{22})/i);
+  if (channelId?.[1]) return channelId[1];
   h = h.replace(/^@+/, "");
   return HANDLE_RE.test(h) ? h : null;
+}
+
+/**
+ * Strict channel check for linking: a youtube.com / tiktok.com channel link, or an @handle.
+ * Returns the bare handle, or a message explaining what's wrong.
+ */
+export function parseChannelInput(platform: Platform, raw: string): { ok: true; handle: string } | { ok: false; error: string } {
+  const v = raw.trim();
+  const site = platform === "youtube" ? "youtube.com" : "tiktok.com";
+  const example = platform === "youtube" ? "youtube.com/@yourchannel or @yourchannel" : "tiktok.com/@yourname or @yourname";
+  if (!v) return { ok: false, error: `Enter your ${PLATFORM_LABEL[platform]} channel: ${example}.` };
+  const isUrl = /^(https?:\/\/)?([a-z0-9-]+\.)*(youtube|tiktok)\.com\//i.test(v) || /:\/\//.test(v);
+  if (isUrl) {
+    let url: URL;
+    try {
+      url = new URL(/^https?:\/\//i.test(v) ? v : `https://${v}`);
+    } catch {
+      return { ok: false, error: `That link doesn't look right. Use ${example}.` };
+    }
+    const host = url.hostname.toLowerCase().replace(/^(www\.|m\.)/, "");
+    if (host !== site) return { ok: false, error: `Use a ${site} channel link, like ${example}.` };
+    const handle = normalizeHandle(`${site}${url.pathname}`);
+    const isChannelPath = /^\/@[^/]+\/?$/.test(url.pathname) || (platform === "youtube" && /^\/channel\/UC[A-Za-z0-9_-]{22}\/?$/.test(url.pathname));
+    if (!handle || !isChannelPath) return { ok: false, error: `Paste your channel link, not a video link: ${example}.` };
+    return { ok: true, handle };
+  }
+  if (!v.startsWith("@")) return { ok: false, error: `Start your handle with @, like @yourchannel, or paste your ${site} link.` };
+  const handle = normalizeHandle(v);
+  if (!handle) return { ok: false, error: "Handles use 2–30 letters, numbers, dots, dashes or underscores." };
+  return { ok: true, handle };
 }
 
 export type ParsedVideo = {
@@ -89,10 +121,22 @@ export function idFromKey(key: string) {
   return key.split(":")[1] ?? "";
 }
 
-export function embedUrl(platform: Platform, id: string) {
-  return platform === "youtube"
-    ? `https://www.youtube-nocookie.com/embed/${id}?playsinline=1&rel=0&autoplay=1`
-    : `https://www.tiktok.com/player/v1/${id}?rel=0&autoplay=1`;
+/**
+ * Embeddable player URL. YouTube needs the page origin (and a referrer) or it refuses to play
+ * inside other sites; playsinline keeps it inside the app on phones instead of going fullscreen.
+ */
+export function embedUrl(platform: Platform, id: string, origin?: string) {
+  if (platform === "youtube") {
+    const q = new URLSearchParams({ playsinline: "1", rel: "0", autoplay: "1", modestbranding: "1", enablejsapi: "0" });
+    if (origin) q.set("origin", origin);
+    return `https://www.youtube.com/embed/${encodeURIComponent(id)}?${q.toString()}`;
+  }
+  return `https://www.tiktok.com/player/v1/${encodeURIComponent(id)}?autoplay=1&rel=0&music_info=1&description=1`;
+}
+
+/** The video's own page, for opening it in the YouTube / TikTok app. */
+export function watchUrl(platform: Platform, id: string) {
+  return platform === "youtube" ? `https://www.youtube.com/watch?v=${id}` : `https://www.tiktok.com/embed/v2/${id}`;
 }
 
 export function thumbnailFor(platform: Platform, id: string, stored: string | null) {
@@ -180,7 +224,28 @@ export function findMovieKeywords(text: string) {
 }
 
 export type Severity = "high" | "medium" | "low";
-export type BotFlag = { code: string; severity: Severity; label: string; detail: string };
+/** The existing video a duplicate / re-upload flag points at, so the admin can compare both. */
+export type FlagRef = { id: string | null; title: string; url: string; platform: Platform; key: string | null };
+export type BotFlag = { code: string; severity: Severity; label: string; detail: string; ref?: FlagRef };
+export type MatchRow = {
+  id?: string;
+  creator_id?: string;
+  title?: string;
+  normalized_title?: string;
+  canonical_url?: string;
+  platform?: string;
+  video_key?: string;
+};
+const refFrom = (m: MatchRow | undefined): FlagRef | undefined =>
+  m?.canonical_url
+    ? {
+        id: m.id ?? null,
+        title: m.title ?? "",
+        url: m.canonical_url,
+        platform: (m.platform === "tiktok" ? "tiktok" : "youtube") as Platform,
+        key: m.video_key ?? null,
+      }
+    : undefined;
 export type ScanStatus = "clean" | "flagged" | "partial";
 export type RiskLevel = "low" | "medium" | "high";
 
@@ -204,8 +269,8 @@ export function scanSubmission(input: {
   title: string;
   linkedHandle: string;
   oembed: OEmbedInfo;
-  sameVideo: { creator_id: string }[];
-  otherTitles: { normalized_title: string }[];
+  sameVideo: (MatchRow & { creator_id: string })[];
+  otherTitles: (MatchRow & { normalized_title: string })[];
 }): { flags: BotFlag[]; scanStatus: ScanStatus; riskLevel: RiskLevel } {
   const flags: BotFlag[] = [];
   const { parsed, oembed } = input;
@@ -214,6 +279,8 @@ export function scanSubmission(input: {
   if (input.sameVideo.length) {
     const mine = input.sameVideo.some((v) => v.creator_id === input.userId);
     const others = input.sameVideo.some((v) => v.creator_id !== input.userId);
+    const earliest = input.sameVideo.find((v) => v.creator_id !== input.userId) ?? input.sameVideo[0];
+    const ref = refFrom(earliest);
     flags.push({
       code: "duplicate_video",
       severity: "high",
@@ -223,22 +290,30 @@ export function scanSubmission(input: {
         : mine
           ? "You already submitted this exact video."
           : "This exact video is already in the hub.",
+      ...(ref ? { ref } : {}),
     });
   }
 
   const norm = normalizeTitle(input.title);
   const sourceNorm = oembed?.title ? normalizeTitle(oembed.title) : "";
   let best = 0;
+  let bestRow: MatchRow | undefined;
   for (const t of input.otherTitles) {
     if (!t.normalized_title) continue;
-    best = Math.max(best, titleSimilarity(norm, t.normalized_title), titleSimilarity(sourceNorm, t.normalized_title));
+    const score = Math.max(titleSimilarity(norm, t.normalized_title), titleSimilarity(sourceNorm, t.normalized_title));
+    if (score > best) {
+      best = score;
+      bestRow = t;
+    }
   }
   if (best >= 0.85 && Math.max(norm.length, sourceNorm.length) >= 6) {
+    const ref = refFrom(bestRow);
     flags.push({
       code: "similar_title",
       severity: "high",
       label: "Possible re-upload",
-      detail: `Title is ${Math.round(best * 100)}% similar to another creator's video.`,
+      detail: `Title is ${Math.round(best * 100)}% similar to another creator's video${bestRow?.title ? `: "${bestRow.title.slice(0, 80)}"` : ""}.`,
+      ...(ref ? { ref } : {}),
     });
   }
 

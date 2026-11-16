@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/integrations/supabase/client";
 import type { BotFlag, Platform, RiskLevel, ScanStatus, VideoFormat } from "@/lib/creator-videos";
-import { getWatchedVideoIds } from "@/lib/videos.functions";
+import { getUnlockedVideos } from "@/lib/videos.functions";
 
 export type FeedVideo = {
   id: string;
@@ -73,14 +73,21 @@ export function useMySubmissions() {
   });
 }
 
-/** Video ids already watched in the last 24 hours by this account or its network. */
-export function useWatchedVideos() {
+/**
+ * Videos unlocked for this account (or its network) in the last 24 hours, mapped to the time
+ * the unlock runs out. Inside that window the video replays freely for 0 coins and 0 views.
+ */
+export function useUnlockedVideos() {
   const { user } = useAuth();
-  const fetchWatched = useServerFn(getWatchedVideoIds);
+  const fetchUnlocked = useServerFn(getUnlockedVideos);
   return useQuery({
     queryKey: ["watched_videos", user?.id],
     enabled: !!user,
-    queryFn: async () => new Set(await fetchWatched()),
+    refetchInterval: 5 * 60_000,
+    queryFn: async () => {
+      const rows = await fetchUnlocked();
+      return new Map(rows.map((r) => [r.videoId, new Date(r.until).getTime()]));
+    },
   });
 }
 

@@ -5,6 +5,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   SUBMIT_GAP_HOURS,
   normalizeTitle,
+  parseChannelInput,
   parseVideoUrl,
   scanSubmission,
   submitCooldown,
@@ -58,10 +59,15 @@ export const submitCreatorVideo = createServerFn({ method: "POST" })
     const oembed = await fetchOEmbed(parsed);
 
     const [same, others] = await Promise.all([
-      supabaseAdmin.from("creator_videos").select("creator_id").eq("video_key", parsed.key).limit(20),
       supabaseAdmin
         .from("creator_videos")
-        .select("normalized_title")
+        .select("id, creator_id, title, canonical_url, platform, video_key")
+        .eq("video_key", parsed.key)
+        .order("created_at", { ascending: true })
+        .limit(20),
+      supabaseAdmin
+        .from("creator_videos")
+        .select("id, normalized_title, title, canonical_url, platform, video_key")
         .neq("creator_id", userId)
         .order("created_at", { ascending: false })
         .limit(2000),
@@ -125,16 +131,64 @@ export const claimVideoView = createServerFn({ method: "POST" })
     };
   });
 
-/** Videos this account, or anyone on the same network, already watched in the last 24 hours. */
-export const getWatchedVideoIds = createServerFn({ method: "POST" })
+/**
+ * Videos this account, or anyone on the same network, unlocked in the last 24 hours,
+ * with when each unlock runs out. Replays inside that window are free and earn nothing.
+ */
+export const getUnlockedVideos = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { clientIp } = await import("@/lib/videos.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data, error } = await supabaseAdmin.rpc("watched_video_ids", {
+    const { data, error } = await supabaseAdmin.rpc("unlocked_videos", {
       p_user: context.userId,
       p_ip: clientIp() as string,
     });
     if (error) throw new Error(error.message);
-    return ((data ?? []) as unknown as string[]).map(String);
+    return ((data ?? []) as { video_id: string; unlocked_until: string }[]).map((r) => ({
+      videoId: String(r.video_id),
+      until: String(r.unlocked_until),
+    }));
+  });
+
+const channelSchema = z.object({ platform: z.enum(["youtube", "tiktok"]), input: z.string().max(300) });
+
+/** Step 1 of linking a creator channel: check the link/handle and fetch the channel's public name. */
+export const previewCreatorChannel = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => channelSchema.parse(input))
+  .handler(async ({ data }) => {
+    const parsed = parseChannelInput(data.platform, data.input);
+    if (!parsed.ok) return { ok: false as const, error: parsed.error };
+    const { fetchChannelInfo } = await import("@/lib/videos.server");
+    const info = await fetchChannelInfo(data.platform, parsed.handle);
+    if (info.status === "not_found") {
+      return { ok: false as const, error: `We couldn't find @${parsed.handle} on ${data.platform === "youtube" ? "YouTube" : "TikTok"}. Check the spelling.` };
+    }
+    return {
+      ok: true as const,
+      handle: parsed.handle,
+      found: info.status === "found",
+      name: info.status === "found" ? info.name : null,
+      avatarUrl: info.status === "found" ? info.avatarUrl : null,
+      url: info.url,
+    };
+  });
+
+/** Step 2: the player confirmed "Is this your channel?". Locks it to their profile. */
+export const linkCreatorChannel = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => channelSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const parsed = parseChannelInput(data.platform, data.input);
+    if (!parsed.ok) return { ok: false as const, error: parsed.error };
+    const { error } = await context.supabase
+      .from("profiles")
+      .update({ creator_platform: data.platform, creator_handle: parsed.handle })
+      .eq("id", context.userId);
+    if (error) {
+      if (error.code === "23505") return { ok: false as const, error: "That channel is already linked to another account." };
+      return { ok: false as const, error: error.message };
+    }
+    return { ok: true as const, handle: parsed.handle };
   });

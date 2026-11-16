@@ -6,7 +6,7 @@ import { Coins, Gem, Heart, Loader2, Pause, Star, type LucideIcon } from "lucide
 import { SponsorAd } from "@/components/ads/SponsorAd";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
-import { errorText, refreshEarnings } from "@/hooks/use-earn";
+import { errorText, refreshEarnings, useEarnStatus } from "@/hooks/use-earn";
 import { refreshVideos, type FeedVideo } from "@/hooks/use-videos";
 import { supabase } from "@/integrations/supabase/client";
 import { UNLOCK_SECONDS, VIDEO_REWARDS } from "@/lib/creator-videos";
@@ -41,6 +41,7 @@ export function UnlockDialog({
 }) {
   const queryClient = useQueryClient();
   const claim = useServerFn(claimVideoView);
+  const status = useEarnStatus();
   const [phase, setPhase] = useState<Phase>("starting");
   const [unlockId, setUnlockId] = useState<string | null>(null);
   const [remainingMs, setRemainingMs] = useState(UNLOCK_SECONDS * 1000);
@@ -134,7 +135,7 @@ export function UnlockDialog({
           {video?.title} · earn +{formatCoins(reward)} Coin
         </DialogDescription>
 
-        <SponsorAd>
+        <SponsorAd network={status.data?.next_network ?? "aads"}>
           {phase === "watching" && paused ? (
             <div className="absolute inset-0 grid place-items-center bg-background/85 backdrop-blur-sm">
               <div className="text-center">
